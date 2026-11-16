@@ -29,6 +29,7 @@ DB = dict(
     autocommit=True,
 )
 PANEN_URL = os.getenv("PANEN_SERVICE_URL", "http://layanan-panen:3000")
+AUTH_URL = os.getenv("AUTH_SERVICE_URL", "http://layanan-auth:3000")
 FIELDS = ["panen_id", "pembeli", "jenis_pembeli", "jumlah_kg", "harga_jual_per_kg", "tanggal_jual", "status_bayar"]
 REQUIRED = ["panen_id", "pembeli", "jumlah_kg", "harga_jual_per_kg", "tanggal_jual"]
 SVC = "layanan-penjualan"
@@ -84,12 +85,21 @@ def panggil_panen(path):
         return None, 503
 
 
+def toko_terverifikasi():
+    """{penjual_id: toko} dari layanan-auth; None jika layanan-auth tidak bisa dihubungi."""
+    try:
+        with urllib.request.urlopen(f"{AUTH_URL}/api/auth/toko/publik", timeout=5) as r:
+            return {t["user_id"]: t for t in json.load(r)["data"]}
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def terjual(cur, pid=None, kecuali_id=None):
     """Total kg terjual untuk satu panen, atau dict {panen_id: kg} jika pid None."""
     if pid is None:
-        cur.execute("SELECT panen_id, SUM(jumlah_kg) AS t FROM penjualan GROUP BY panen_id")
+        cur.execute("SELECT panen_id, SUM(jumlah_kg) AS t FROM penjualan WHERE status_pesanan<>'Dibatalkan' GROUP BY panen_id")
         return {r["panen_id"]: float(r["t"]) for r in cur.fetchall()}
-    sql, args = "SELECT COALESCE(SUM(jumlah_kg),0) AS t FROM penjualan WHERE panen_id=%s", [pid]
+    sql, args = "SELECT COALESCE(SUM(jumlah_kg),0) AS t FROM penjualan WHERE panen_id=%s AND status_pesanan<>'Dibatalkan'", [pid]
     if kecuali_id:
         sql += " AND id<>%s"
         args.append(kecuali_id)
@@ -130,17 +140,21 @@ def health():
 
 @app.get("/api/penjualan/katalog")
 def katalog():
-    """Daftar hasil panen yang masih punya stok (untuk pembeli)."""
+    """Daftar hasil panen yang masih punya stok, hanya dari toko yang sudah diverifikasi admin."""
     panen, e = panggil_panen("/api/panen")
     if e:
         return err("layanan-panen tidak dapat dihubungi", 503)
+    toko = toko_terverifikasi()
+    if toko is None:
+        return err("layanan-auth tidak dapat dihubungi (data toko)", 503)
     with conn() as c, c.cursor() as cur:
         t = terjual(cur)
     items = []
     for p in panen:
         sisa = float(p["jumlah_kg"]) - t.get(p["id"], 0.0)
-        if sisa > 0:
-            items.append({"panen_id": p["id"], "komoditas": p["komoditas"], "kualitas": p["kualitas"],
+        tk = toko.get(p["pemilik_id"])
+        if sisa > 0 and tk:
+            items.append({"toko": tk["nama_toko"], "provinsi": tk["provinsi"], "kota": tk["kota"], "panen_id": p["id"], "komoditas": p["komoditas"], "kualitas": p["kualitas"],
                           "tanggal_panen": p["tanggal_panen"], "lahan_id": p["lahan_id"],
                           "penjual_id": p["pemilik_id"], "harga_per_kg": p["harga_per_kg"], "sisa_kg": sisa})
     return ok(items, message=f"{len(items)} produk tersedia")
@@ -204,7 +218,7 @@ def create_penjualan():
                 return gagal
             cur.execute(
                 "INSERT INTO penjualan (panen_id, penjual_id, pembeli_id, pembeli, jenis_pembeli, jumlah_kg, "
-                "harga_jual_per_kg, tanggal_jual, status_bayar) VALUES (%s,%s,%s,%s,'Perorangan',%s,%s,%s,'Belum Lunas')",
+                "harga_jual_per_kg, tanggal_jual, status_bayar, status_pesanan) VALUES (%s,%s,%s,%s,'Perorangan',%s,%s,%s,'Belum Lunas','Menunggu Bayar')",
                 (b["panen_id"], panen["pemilik_id"], u[0], u[2], b["jumlah_kg"], panen["harga_per_kg"], date.today()),
             )
             cur.execute("SELECT * FROM penjualan WHERE id=%s", (cur.lastrowid,))
@@ -255,6 +269,8 @@ def update_penjualan(sid):
             extra, extra_args = ", penjual_id=%s", [panen["pemilik_id"]]
         cur.execute(f"UPDATE penjualan SET {', '.join(f + '=%s' for f in cols)}{extra} WHERE id=%s",
                     [b[f] for f in cols] + extra_args + [sid])
+        if b.get("status_bayar") == "Lunas":   # pembayaran dikonfirmasi -> pesanan Dibayar
+            cur.execute("UPDATE penjualan SET status_pesanan='Dibayar' WHERE id=%s AND status_pesanan='Menunggu Bayar'", (sid,))
         cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
         row = cur.fetchone()
     return ok(clean(row), message="penjualan berhasil diperbarui")
@@ -269,21 +285,69 @@ def delete_penjualan(sid):
         if not row:
             return err(f"penjualan id {sid} tidak ditemukan", 404)
         if u and u[1] == "pembeli":
-            if row["pembeli_id"] != u[0]:
-                return err("anda hanya boleh membatalkan pembelian sendiri", 403)
-            if row["status_bayar"] != "Belum Lunas":
-                return err("pembelian yang sudah dibayar tidak bisa dibatalkan", 422)
-        elif not boleh_kelola(u, row):
+            return err("pembeli tidak menghapus transaksi; gunakan Batalkan (POST /api/penjualan/{id}/batal)", 403)
+        if not boleh_kelola(u, row):
             return err("anda hanya boleh menghapus penjualan milik sendiri", 403)
         cur.execute("DELETE FROM penjualan WHERE id=%s", (sid,))
-    pesan = "pembelian berhasil dibatalkan" if u and u[1] == "pembeli" else "penjualan berhasil dihapus"
-    return ok({"id": sid}, message=pesan)
+    return ok({"id": sid}, message="penjualan berhasil dihapus")
+
+
+# ---------------------------------------------------------------- Status pesanan
+# Menunggu Bayar -> Dibayar -> Diproses -> Dikirim -> Selesai. Dibatalkan hanya sebelum Diproses.
+BOLEH_BATAL = ("Menunggu Bayar", "Dibayar")
+LANJUT = {"Dibayar": "Diproses", "Diproses": "Dikirim", "Dikirim": "Selesai"}
+
+
+@app.post("/api/penjualan/<int:sid>/status")
+def ubah_status(sid):
+    u = pengguna()
+    baru = (request.get_json(silent=True) or {}).get("status")
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
+        row = cur.fetchone()
+        if not row:
+            return err(f"penjualan id {sid} tidak ditemukan", 404)
+        lama = row["status_pesanan"]
+        pembeli_pemilik = u and u[1] == "pembeli" and row["pembeli_id"] == u[0]
+        if not (boleh_kelola(u, row) or pembeli_pemilik):
+            return err("anda tidak berhak mengubah pesanan ini", 403)
+        if LANJUT.get(lama) != baru:
+            return err(f"status '{lama}' tidak bisa diubah menjadi '{baru}'. Urutannya: Dibayar → Diproses → Dikirim → Selesai", 422)
+        if pembeli_pemilik and baru != "Selesai":
+            return err("pembeli hanya bisa menandai pesanan diterima (Selesai)", 403)
+        if baru == "Diproses" and row["status_bayar"] != "Lunas":
+            return err("pesanan baru bisa diproses setelah pembayaran lunas", 422)
+        cur.execute("UPDATE penjualan SET status_pesanan=%s WHERE id=%s", (baru, sid))
+        cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
+        row = cur.fetchone()
+    return ok(clean(row), message=f"pesanan {sid} sekarang {baru}")
+
+
+@app.post("/api/penjualan/<int:sid>/batal")
+def batal(sid):
+    u = pengguna()
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
+        row = cur.fetchone()
+        if not row:
+            return err(f"penjualan id {sid} tidak ditemukan", 404)
+        if not (boleh_kelola(u, row) or (u and u[1] == "pembeli" and row["pembeli_id"] == u[0])):
+            return err("anda hanya boleh membatalkan pesanan sendiri", 403)
+        if row["status_pesanan"] not in BOLEH_BATAL:
+            return err(f"pesanan sudah {row['status_pesanan']}, tidak bisa dibatalkan lagi", 422)
+        cur.execute("UPDATE penjualan SET status_pesanan='Dibatalkan' WHERE id=%s", (sid,))
+        cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
+        row = cur.fetchone()
+    pesan = "pesanan dibatalkan, stok dikembalikan"
+    if row["status_bayar"] == "Lunas":
+        pesan += ". Uang dikembalikan penjual ke pembeli (simulasi)"
+    return ok(clean(row), message=pesan)
 
 
 # ---------------------------------------------------------------- Pembayaran QRIS (SIMULASI)
 # Tidak terhubung ke bank / e-wallet mana pun. QR berisi kode pembayaran simulasi,
 # status berubah: Belum Lunas -> Menunggu Konfirmasi (pembeli) -> Lunas (penjual).
-MERCHANT = "RANTAITANI (SIMULASI)"
+MERCHANT = "TANIMART (SIMULASI)"
 BERLAKU_MENIT = 15
 
 
@@ -308,8 +372,10 @@ def qris(sid):
             return gagal
     if row["status_bayar"] == "Lunas":
         return err("transaksi ini sudah lunas", 422)
+    if row["status_pesanan"] == "Dibatalkan":
+        return err("pesanan ini sudah dibatalkan", 422)
     total = round(float(row["jumlah_kg"]) * float(row["harga_jual_per_kg"]))
-    kode = f"RT-{sid:06d}"
+    kode = f"TM-{sid:06d}"
     payload = f"SIMULASI-QRIS|{MERCHANT}|{kode}|IDR{total}"
     img = qrcode.make(payload, image_factory=qrcode.image.svg.SvgPathImage, box_size=10, border=2)
     svg = img.to_string(encoding="unicode")
@@ -325,8 +391,8 @@ def sudah_bayar(sid):
         row, gagal = ambil_milik_pembeli(cur, sid, u)
         if gagal:
             return gagal
-        if row["status_bayar"] != "Belum Lunas":
-            return err(f"status transaksi sudah '{row['status_bayar']}'", 422)
+        if row["status_bayar"] != "Belum Lunas" or row["status_pesanan"] == "Dibatalkan":
+            return err(f"status transaksi sudah '{row['status_bayar']}' / pesanan '{row['status_pesanan']}'", 422)
         cur.execute("UPDATE penjualan SET status_bayar='Menunggu Konfirmasi' WHERE id=%s", (sid,))
         cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
         row = cur.fetchone()

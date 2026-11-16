@@ -1,33 +1,41 @@
-# RantaiTani 🌾
+# TaniMart 🌾
 
-**Sistem manajemen lahan, panen, dan penjualan hasil pertanian berbasis microservices Docker.**
+**Info harga pangan dan pasar hasil tani, dibangun sebagai microservices di Docker.**
 Project 1 Cloud Computing · Kelompok 10 · Kasus **Pertanian** · Platform **Microservices (Docker)** · Database **SQL (MySQL)**
 
-![Halaman login](docs/gambar/01-login.jpg)
+TaniMart dulu bernama RantaiTani. Nama folder, container, dan repo masih memakai `rantaitani`.
+
+![Halaman info](docs/gambar/22-info-beranda.jpg)
 
 ## Kenapa & untuk siapa
 
-Pencatatan lahan, panen, dan penjualan di kelompok tani sering masih terpisah, sehingga sisa stok, pembayaran, dan pendapatan sulit diketahui. RantaiTani mencatat seluruh rantai: **lahan → panen → penjualan → pembayaran**.
+Pencatatan lahan, panen, dan penjualan di kelompok tani sering masih terpisah, sehingga sisa stok, pembayaran, dan pendapatan sulit diketahui. Pembeli juga sulit mencari petani terdekat dan memperkirakan ongkos kirim antarpulau.
+
+TaniMart punya dua bagian di satu alamat:
+
+- **Info** (`/`, tanpa login): harga pangan per bulan, peta produksi per provinsi (data BPS), dan estimasi rute, biaya, serta waktu kirim antarprovinsi.
+- **Pasar** (`/pasar/`, dibuka lewat tombol *Mulai Transaksi*): lahan → panen → toko → penjualan → pembayaran → pengiriman.
 
 | Pengguna | Yang bisa dilakukan |
 |---|---|
-| **Penjual (petani)** | Kelola lahan & panen, catat penjualan, konfirmasi pembayaran, lihat pendapatan & piutang |
-| **Pembeli** | Lihat katalog, beli dalam gram / ons / kg / kuintal / ton, bayar QRIS (simulasi), lihat riwayat |
-| **Admin** | Awasi semua data, kelola akun pengguna, pantau status layanan |
+| **Penjual (petani)** | Buka toko (lokasi, luas lahan, hasil per panen, kontak, bukti lahan), kelola lahan & panen, konfirmasi bayar, proses & kirim pesanan |
+| **Pembeli** | Katalog dari toko terverifikasi, peta penjual terdekat, estimasi kirim, beli dalam gram sampai ton, bayar QRIS (simulasi), batalkan sebelum diproses |
+| **Admin** | Verifikasi toko, perbarui harga pangan, kelola semua data & akun, pantau status layanan |
 
-## Arsitektur (7 container)
+## Arsitektur (8 container)
 
 ![Arsitektur](docs/gambar/arsitektur.jpg)
 
 | Container | Teknologi | Tugas |
 |---|---|---|
 | `gateway` | Nginx 1.27 | Satu-satunya port publik (**8090**), menyajikan web, meneruskan `/api/*`, cek token (auth_request) |
-| `layanan-auth` | Express 5 (Node.js 20) | Daftar, login (JWT), kelola pengguna |
+| `layanan-auth` | Express 5 (Node.js 20) | Daftar, login (JWT), kelola pengguna, toko penjual & verifikasi |
 | `layanan-lahan` | Flask 3 (Python 3.12) | CRUD lahan |
 | `layanan-panen` | Express 5 (Node.js 20) | CRUD panen (stok); validasi lahan ke layanan-lahan |
-| `layanan-penjualan` | Flask 3 (Python 3.12) | Katalog, jual-beli, cek stok ke layanan-panen, QRIS simulasi |
+| `layanan-penjualan` | Flask 3 (Python 3.12) | Katalog (hanya toko terverifikasi), jual-beli, status pesanan, QRIS simulasi |
 | `layanan-bantuan` | Flask 3 (Python 3.12) | Chatbot asisten (cek status pembayaran pengguna) |
-| `db` | MySQL 8.0 | 4 database terpisah: `db_auth`, `db_lahan`, `db_panen`, `db_penjualan` |
+| `layanan-info` | Flask 3 (Python 3.12) | CRUD harga pangan, produksi per provinsi, estimasi rute kirim |
+| `db` | MySQL 8.0 | 5 database terpisah: `db_auth`, `db_lahan`, `db_panen`, `db_penjualan`, `db_info` |
 
 Semua container berada di network `tani-net` (bridge). Data MySQL disimpan di volume `rantaitani-mysql-data`.
 
@@ -42,17 +50,19 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 docker compose up -d --build
 ```
 
-Buka **http://localhost:8090**. Dari perangkat lain di jaringan yang sama: `http://<IP-laptop>:8090`.
+Buka **http://localhost:8090** (info) atau **http://localhost:8090/pasar/** (pasar).
 
 Akun contoh (dibuat otomatis saat pertama jalan):
 
 | Peran | Username | Password |
 |---|---|---|
 | Admin | `admin` | `admin123` |
-| Penjual | `darto`, `siti`, `ujang` | `petani123` |
+| Penjual | `darto`, `siti` (toko terverifikasi), `ujang` (toko menunggu verifikasi) | `petani123` |
 | Pembeli | `rina` | `pembeli123` |
 
 Perintah lain: `docker compose ps` (status), `docker compose logs -f <service>` (log), `docker compose down` (berhenti, data tetap), `docker compose down -v` (hapus beserta data).
+
+Uji API otomatis (51 skenario, data uji dihapus lagi): `python tes/uji_api.py`
 
 ## Endpoint API (melalui gateway :8090)
 
@@ -60,37 +70,55 @@ Perintah lain: `docker compose ps` (status), `docker compose logs -f <service>` 
 |---|---|---|
 | POST | `/api/auth/register`, `/api/auth/login` | Daftar, login (token JWT) |
 | GET/POST/PUT/DELETE | `/api/auth/users[/{id}]` | Kelola pengguna (admin) |
+| GET/POST/PUT/DELETE | `/api/auth/toko[/{id}]`, GET `/api/auth/toko/saya` | Toko penjual; admin mengubah status verifikasi |
+| GET | `/api/auth/toko/publik` | Toko terverifikasi (tanpa kontak) |
 | GET/POST/PUT/DELETE | `/api/lahan[/{id}]` | CRUD lahan |
 | GET/POST/PUT/DELETE | `/api/panen[/{id}]` | CRUD panen |
-| GET/POST/PUT/DELETE | `/api/penjualan[/{id}]` | CRUD penjualan / beli / batal |
+| GET/POST/PUT/DELETE | `/api/penjualan[/{id}]` | CRUD penjualan / beli |
+| POST | `/api/penjualan/{id}/status`, `/api/penjualan/{id}/batal` | Proses → kirim → selesai; batal hanya sebelum diproses |
 | GET | `/api/penjualan/katalog`, `/api/penjualan/stok/{id}` | Katalog, sisa stok |
 | GET · POST | `/api/penjualan/{id}/qris`, `/api/penjualan/{id}/sudah-bayar` | Pembayaran QRIS (simulasi) |
+| GET/POST/PUT/DELETE | `/api/info/harga[/{id}]` | CRUD harga pangan (ubah: admin) |
+| GET | `/api/info/publik/harga`, `/harga/terbaru`, `/produksi`, `/provinsi` | Data info publik (hanya baca) |
+| GET | `/api/info/publik/estimasi?asal=&tujuan=&ton=` | Estimasi rute, biaya, waktu kirim |
 | POST | `/api/bantuan/chat`, `/api/bantuan/publik` | Chatbot |
 | GET | `/api/{layanan}/health` | Status layanan |
 
-Selain login/register, kirim header `Authorization: Bearer <token>`.
+Kecuali login, register, dan `/publik`, kirim header `Authorization: Bearer <token>`.
+
+## Alur pesanan
+
+**Menunggu Bayar → Dibayar → Diproses → Dikirim → Selesai.** Pembeli atau penjual bisa membatalkan selama pesanan belum diproses. Pesanan yang dibatalkan tetap tercatat dan stoknya kembali ke katalog.
 
 ## Tampilan
 
-| Admin | Katalog pembeli |
+| Estimasi kirim | Verifikasi toko (admin) |
 |---|---|
-| ![Admin](docs/gambar/03-admin-ringkasan.jpg) | ![Katalog](docs/gambar/14-pembeli-katalog.jpg) |
-| **Bayar QRIS (simulasi)** | **Chatbot** |
-| ![QRIS](docs/gambar/18-pembeli-bayar-qris.jpg) | ![Chatbot](docs/gambar/20-chatbot-pembeli.jpg) |
+| ![Estimasi](docs/gambar/23-info-estimasi-kirim.jpg) | ![Verifikasi toko](docs/gambar/24-admin-verifikasi-toko.jpg) |
+| **Peta penjual terdekat** | **Status pesanan** |
+| ![Peta penjual](docs/gambar/25-pembeli-peta-penjual.jpg) | ![Status pesanan](docs/gambar/26-pembeli-status-pesanan.jpg) |
 
-> Catatan: QRIS di proyek ini adalah **simulasi** untuk tugas kuliah; tidak terhubung ke bank atau e-wallet dan tidak ada uang yang berpindah.
+## Sumber data & catatan
+
+- Harga gabah bulanan 2024, produksi padi dan perkebunan per provinsi 2024: **BPS**.
+- Harga beras medium tingkat penggilingan (17 Okt–17 Nov 2026): **Panel Harga Badan Pangan Nasional**, diekspor manual dari situsnya.
+- Batas provinsi: [denyherianto/indonesia-geojson-topojson-maps-with-38-provinces](https://github.com/denyherianto/indonesia-geojson-topojson-maps-with-38-provinces) (CC BY 4.0), disederhanakan.
+- Estimasi kirim memakai tarif **asumsi** yang ditulis di `layanan-info/rute.py`, bukan tarif resmi ekspedisi.
+- QRIS adalah **simulasi** untuk tugas kuliah. Tidak terhubung ke bank atau e-wallet dan tidak ada uang yang berpindah.
 
 ## Struktur folder
 
 ```
-├── docker-compose.yml     # orkestrasi 7 container
+├── docker-compose.yml     # orkestrasi 8 container
 ├── .env.example           # contoh variabel lingkungan
-├── database/init.sql      # 4 database, user per layanan, tabel, data awal
+├── database/              # 01 init, 02 info (harga & produksi), 03 toko, 04 status pesanan
 ├── gateway/nginx.conf     # reverse proxy + pemeriksaan token
-├── frontend/              # HTML, CSS, JS, aset (logo, video login)
-├── layanan-auth/          # Express
+├── frontend/              # halaman info (/), pasar (/pasar/), CSS, JS, aset
+├── layanan-auth/          # Express: akun & toko
 ├── layanan-lahan/         # Flask
 ├── layanan-panen/         # Express
-├── layanan-penjualan/     # Flask
-└── layanan-bantuan/       # Flask (chatbot)
+├── layanan-penjualan/     # Flask: katalog, transaksi, pesanan
+├── layanan-bantuan/       # Flask: chatbot
+├── layanan-info/          # Flask: harga pangan, produksi, estimasi rute
+└── tes/uji_api.py         # uji API otomatis
 ```

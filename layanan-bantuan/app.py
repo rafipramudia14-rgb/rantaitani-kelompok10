@@ -65,7 +65,7 @@ NIAT = [
     ("panen", ["panen", "catat panen", "hasil panen", "kualitas"], 2),
     ("penjualan_penjual", ["catat penjualan", "jual", "menjual", "tengkulak", "koperasi", "pabrik", "lunaskan", "konfirmasi bayar", "konfirmasi pembayaran"], 2),
     ("ringkasan", ["ringkasan", "pendapatan", "piutang", "laporan", "total", "rekap"], 2),
-    ("tentang", ["apa itu", "rantaitani", "tentang", "fungsi web", "web ini", "aplikasi ini", "kegunaan"], 2),
+    ("tentang", ["apa itu", "rantaitani", "tanimart", "tani mart", "tentang", "fungsi web", "web ini", "aplikasi ini", "kegunaan"], 2),
     ("teknis", ["docker", "microservice", "container", "kontainer", "flask", "express", "nginx", "mysql", "arsitektur", "jwt", "api"], 2),
     ("status_layanan", ["status layanan", "layanan mati", "server", "error", "tidak bisa dibuka", "loading", "lampu merah", "down"], 2),
     ("kelola_pengguna", ["kelola pengguna", "tambah pengguna", "hapus akun", "hapus pengguna", "akun pengguna", "menu pengguna"], 3),
@@ -73,7 +73,7 @@ NIAT = [
 ]
 
 SARAN_UMUM = {
-    None: ["Apa itu RantaiTani?", "Cara daftar akun", "Lupa password"],
+    None: ["Apa itu TaniMart?", "Cara daftar akun", "Lupa password"],
     "pembeli": ["Cek status pembayaran saya", "Cara bayar QRIS", "Cara membeli", "Cara membatalkan"],
     "penjual": ["Cara melunaskan pembayaran", "Cara catat panen", "Cara catat penjualan", "Stok tidak cukup"],
     "admin": ["Perbedaan peran", "Cek status layanan", "Cara kelola pengguna", "Arsitektur Docker"],
@@ -93,7 +93,7 @@ def jawab(niat, u):
     nama = (u or {}).get("nama", "").split(" ")[0] if u else ""
 
     if niat == "salam":
-        return (f"Halo{(' ' + nama) if nama else ''}! Saya Asisten RantaiTani. Saya bisa bantu soal pembayaran QRIS, pembelian, "
+        return (f"Halo{(' ' + nama) if nama else ''}! Saya Asisten TaniMart. Saya bisa bantu soal pembayaran QRIS, pembelian, "
                 "akun, dan cara memakai web ini. Mau tanya apa?"), SARAN_UMUM[role]
     if niat == "terima_kasih":
         return "Sama-sama! Kalau ada kendala lain, tanya saja di sini.", SARAN_UMUM[role]
@@ -153,8 +153,8 @@ def jawab(niat, u):
                 "Karena ini QRIS simulasi untuk tugas, aplikasi e-wallet sungguhan akan menolak kode tersebut. "
                 "Untuk demo, cukup tekan 'Saya sudah bayar'."), ["Cara bayar QRIS"]
     if niat == "batal":
-        return ("Pembelian bisa dibatalkan selama statusnya masih Belum Lunas: buka Pembelian Saya lalu klik Batalkan. "
-                "Jika sudah menekan 'Saya sudah bayar' atau sudah Lunas, pembatalan harus lewat penjual."), ["Cek status pembayaran saya"]
+        return ("Pesanan bisa dibatalkan selama statusnya Menunggu Bayar atau Dibayar: buka Pembelian Saya lalu klik Batalkan. "
+                "Setelah penjual memproses pesanan (Diproses, Dikirim), pesanan tidak bisa dibatalkan lagi."), ["Cek status pembayaran saya"]
     if niat == "cara_beli":
         if role and role != "pembeli":
             return "Fitur beli hanya untuk akun pembeli. Penjual mencatat penjualan lewat tab Penjualan Saya.", SARAN_UMUM[role]
@@ -177,7 +177,7 @@ def jawab(niat, u):
         return ("Cara daftar: di halaman login klik Daftar, isi nama, username, dan password (minimal 6 karakter), lalu pilih "
                 "Pembeli atau Penjual (Petani). Akun admin hanya bisa dibuat oleh admin."), ["Perbedaan peran", "Lupa password"]
     if niat == "lupa_password":
-        return ("Password tidak bisa direset sendiri. Hubungi admin RantaiTani; admin dapat mengganti password Anda di menu Pengguna. "
+        return ("Password tidak bisa direset sendiri. Hubungi admin TaniMart; admin dapat mengganti password Anda di menu Pengguna. "
                 "Pastikan juga username yang diketik benar (huruf kecil/besar berpengaruh)."), ["Cara daftar akun"]
     if niat == "peran":
         return ("Ada 3 peran:\n• Admin: melihat dan mengelola semua data serta akun pengguna.\n"
@@ -203,10 +203,10 @@ def jawab(niat, u):
         return ("Tab Ringkasan menampilkan jumlah dan luas lahan, total serta nilai panen, jumlah terjual, pendapatan (sudah lunas), "
                 "piutang (belum lunas), dan sisa stok."), SARAN_UMUM[role]
     if niat == "tentang":
-        return ("RantaiTani adalah web untuk mencatat rantai hasil tani: lahan → panen → penjualan. Petani mengelola lahan dan panennya, "
+        return ("TaniMart adalah web untuk mencatat rantai hasil tani: lahan → panen → penjualan. Petani mengelola lahan dan panennya, "
                 "pembeli membeli langsung dari katalog, dan admin mengawasi semuanya."), SARAN_UMUM[role]
     if niat == "teknis":
-        return ("RantaiTani berjalan di 7 container Docker: gateway Nginx, layanan-auth (Express), layanan-lahan (Flask), "
+        return ("TaniMart berjalan di 7 container Docker: gateway Nginx, layanan-auth (Express), layanan-lahan (Flask), "
                 "layanan-panen (Express), layanan-penjualan (Flask), layanan-bantuan (Flask, chatbot ini), dan MySQL. "
                 "Semuanya terhubung lewat network tani-net, dan login memakai token JWT yang dicek di gateway."), SARAN_UMUM[role]
     if niat == "status_layanan":
@@ -221,7 +221,7 @@ def jawab(niat, u):
         return ("Buka tab Pengguna: klik + Tambah Pengguna untuk membuat akun (termasuk admin), Ubah untuk mengganti nama, "
                 "peran, atau password, dan Hapus untuk menghapus akun. Akun Anda sendiri tidak bisa dihapus."), SARAN_UMUM[role]
     if niat == "kontak":
-        return ("Saya asisten otomatis. Untuk masalah yang belum terjawab, hubungi admin RantaiTani atau penjual terkait. "
+        return ("Saya asisten otomatis. Untuk masalah yang belum terjawab, hubungi admin TaniMart atau penjual terkait. "
                 "Nama penjual tercantum di katalog dan di riwayat pembelian."), SARAN_UMUM[role]
     return None, None
 
@@ -258,7 +258,7 @@ def chat():
     u = pengguna() if request.path.endswith("/chat") else None
     if not pesan:
         role = u["role"] if u else None
-        return ok({"jawaban": "Halo! Saya Asisten RantaiTani. Ada yang bisa saya bantu?", "saran": SARAN_UMUM[role], "niat": "sapaan"})
+        return ok({"jawaban": "Halo! Saya Asisten TaniMart. Ada yang bisa saya bantu?", "saran": SARAN_UMUM[role], "niat": "sapaan"})
     return ok(proses(pesan, u))
 
 

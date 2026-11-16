@@ -1,6 +1,7 @@
-# RantaiTani - Sistem Rantai Hasil Pertanian (Kelompok 10 - Pertanian)
+# TaniMart (proyek rantaitani) - Pasar & Informasi Hasil Pertanian (Kelompok 10 - Pertanian)
 # Microservices: gateway (Nginx) + layanan-auth (Express) + layanan-lahan (Flask)
-#                + layanan-panen (Express) + layanan-penjualan (Flask) + layanan-bantuan (Flask, chatbot) + MySQL
+#                + layanan-panen (Express) + layanan-penjualan (Flask) + layanan-bantuan (Flask, chatbot)
+#                + layanan-info (Flask, harga pangan & produksi) + MySQL
 name: rantaitani
 
 services:
@@ -12,7 +13,10 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql                        # storage persisten
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./database/info.sql:/docker-entrypoint-initdb.d/02-info.sql:ro
+      - ./database/toko.sql:/docker-entrypoint-initdb.d/03-toko.sql:ro
+      - ./database/pesanan.sql:/docker-entrypoint-initdb.d/04-pesanan.sql:ro
     networks:
       - tani-net
     healthcheck:
@@ -85,6 +89,7 @@ services:
       DB_PASSWORD: ${PENJUALAN_DB_PASSWORD}
       DB_NAME: db_penjualan
       PANEN_SERVICE_URL: http://layanan-panen:3000     # cek stok ke layanan-panen
+      AUTH_SERVICE_URL: http://layanan-auth:3000       # daftar toko terverifikasi
     depends_on:
       db:
         condition: service_healthy
@@ -105,6 +110,22 @@ services:
     networks:
       - tani-net
 
+  layanan-info:
+    build: ./layanan-info
+    image: rantaitani/layanan-info:1.0
+    container_name: rantaitani-info
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_USER: ${INFO_DB_USER}
+      DB_PASSWORD: ${INFO_DB_PASSWORD}
+      DB_NAME: db_info
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - tani-net
+
   gateway:
     image: nginx:1.27-alpine
     container_name: rantaitani-gateway
@@ -120,6 +141,7 @@ services:
       - layanan-panen
       - layanan-penjualan
       - layanan-bantuan
+      - layanan-info
     networks:
       - tani-net
 

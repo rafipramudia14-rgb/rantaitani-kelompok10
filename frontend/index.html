@@ -3,290 +3,148 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RantaiTani — Lahan, Panen & Penjualan</title>
+<title>TaniMart — Info Harga & Produksi Pangan</title>
+<meta name="description" content="Harga pangan dan produksi pertanian per provinsi dari data BPS, ditambah pasar hasil tani langsung dari petani.">
 <link rel="icon" href="aset/logo-mark.png">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" href="aset/fonts/PlusJakartaSans.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="aset/fonts/PlayfairDisplay.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="info.css">
 </head>
-<body>
+<body class="info">
+<div class="ambient" aria-hidden="true"><i class="blob a"></i><i class="blob b"></i><i class="blob c"></i></div>
 
-<!-- ================= LOGIN (latar video sinematik + kartu kaca) ================= -->
-<section id="login-screen" class="login-screen" hidden>
-  <div class="layar"><video src="aset/latar-campur.mp4" poster="aset/latar-campur.jpg" muted loop playsinline autoplay></video></div>
-  <div class="merek"><img src="aset/logo-mark.png" alt=""><div>RantaiTani<small>LAHAN · PANEN · PENJUALAN</small></div></div>
-
-  <div class="kartu" id="kartu">
-    <div class="kartu-tab"><span id="judul-login">Masuk</span></div>
-    <form id="form-login">
-      <div class="isian"><input name="username" placeholder=" " autocomplete="username" required><label>Username</label><span class="ikon"><svg viewBox="0 0 24 24"><path d="M4 20c1.5-4 5-5 8-5s6.5 1 8 5"/><circle cx="12" cy="8" r="4"/></svg></span></div>
-      <div class="isian"><input name="password" type="password" placeholder=" " autocomplete="current-password" required><label>Password</label>
-        <span class="ikon"><button type="button" class="lihat" aria-label="Tampilkan password"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></div>
-      <button class="tombol">Masuk</button>
-    </form>
-    <form id="form-daftar" hidden>
-      <div class="isian"><input name="nama" placeholder=" " autocomplete="name" required><label>Nama lengkap</label><span class="ikon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h6M7 14h4"/></svg></span></div>
-      <div class="isian"><input name="username" placeholder=" " autocomplete="username" required><label>Username</label><span class="ikon"><svg viewBox="0 0 24 24"><path d="M4 20c1.5-4 5-5 8-5s6.5 1 8 5"/><circle cx="12" cy="8" r="4"/></svg></span></div>
-      <div class="isian"><input name="password" type="password" minlength="6" placeholder=" " autocomplete="new-password" required><label>Password (min. 6 karakter)</label>
-        <span class="ikon"><button type="button" class="lihat" aria-label="Tampilkan password"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></div>
-      <div class="peran-pilih">
-        <label><input type="radio" name="role" value="pembeli" checked><span>Pembeli</span></label>
-        <label><input type="radio" name="role" value="penjual"><span>Penjual (Petani)</span></label>
-      </div>
-      <button class="tombol">Buat akun</button>
-    </form>
-    <p class="bawah"><span id="tanya">Belum punya akun?</span> <a href="#" id="ganti">Daftar</a></p>
-    <details class="demo">
-      <summary>Akun contoh untuk demo</summary>
-      <table>
-        <tr><td>Admin</td><td><code>admin</code> / <code>admin123</code></td></tr>
-        <tr><td>Penjual</td><td><code>darto</code> · <code>siti</code> · <code>ujang</code> / <code>petani123</code></td></tr>
-        <tr><td>Pembeli</td><td><code>rina</code> / <code>pembeli123</code></td></tr>
-      </table>
-    </details>
-  </div>
-</section>
-
-<!-- ================= APLIKASI ================= -->
-<div id="app" hidden>
 <header class="topbar">
-  <div class="brand">
+  <a class="brand" href="#beranda">
     <img class="logo-img" src="aset/logo-mark.png" alt="">
-    <div><h1>RantaiTani</h1><p id="subjudul">Dari lahan, panen, sampai penjualan hasil tani</p></div>
-  </div>
-  <div class="right">
-    <div class="status" id="status" hidden>
-      <span class="pill" data-svc="auth"><i></i>Auth</span>
-      <span class="pill" data-svc="lahan"><i></i>Lahan</span>
-      <span class="pill" data-svc="panen"><i></i>Panen</span>
-      <span class="pill" data-svc="penjualan"><i></i>Penjualan</span>
-      <span class="pill" data-svc="bantuan"><i></i>Bantuan</span>
-    </div>
-    <div class="user">
-      <span id="user-nama"></span><span class="role" id="user-role"></span>
-      <button class="btn sm ghost" id="logout">Keluar</button>
-    </div>
-  </div>
+    <span class="brand-text">TaniMart<small>Info &amp; Pasar Hasil Tani</small></span>
+  </a>
+  <nav class="tabs" aria-label="Menu info">
+    <a class="tab active" href="#beranda">Beranda</a>
+    <a class="tab" href="#harga">Harga Pangan</a>
+    <a class="tab" href="#peta">Peta Produksi</a>
+    <a class="tab" href="#kirim">Estimasi Kirim</a>
+  </nav>
+  <a class="btn primary" href="/pasar/" target="_blank" rel="noopener">Mulai Transaksi ↗</a>
 </header>
 
-<nav class="tabs" id="tabs"></nav>
-
 <main>
-  <!-- Ringkasan (admin & penjual) -->
-  <section id="tab-ringkasan" class="panel">
-    <div class="cards">
-      <div class="card"><span>Jumlah Lahan</span><b id="s-lahan">–</b></div>
-      <div class="card"><span>Total Luas</span><b id="s-luas">–</b></div>
-      <div class="card"><span>Total Panen</span><b id="s-panen">–</b></div>
-      <div class="card"><span>Nilai Panen</span><b id="s-nilai">–</b></div>
-      <div class="card"><span>Terjual</span><b id="s-terjual">–</b></div>
-      <div class="card"><span>Pendapatan</span><b id="s-pendapatan">–</b></div>
-      <div class="card"><span>Belum Dibayar</span><b id="s-piutang">–</b></div>
-      <div class="card"><span>Sisa Stok</span><b id="s-sisa">–</b></div>
+  <!-- ================= BERANDA ================= -->
+  <section id="beranda" class="hero">
+    <div class="hero-teks">
+      <p class="eyebrow">Info &amp; pasar hasil tani</p>
+      <h1>Cek harga pangan, lalu beli langsung dari petani.</h1>
+      <p class="lead">TaniMart punya dua bagian. Bagian <b>info</b> di halaman ini menampilkan harga dan produksi pangan dari data BPS.
+        Bagian <b>pasar</b> dipakai petani untuk mencatat lahan, panen, dan penjualan, dan dipakai pembeli untuk membeli hasil tani.</p>
+      <div class="hero-aksi">
+        <a class="btn primary besar" href="/pasar/" target="_blank" rel="noopener">Mulai Transaksi ↗</a>
+        <a class="btn besar" href="/pasar/#daftar-penjual" target="_blank" rel="noopener">Jadi Seller</a>
+      </div>
     </div>
-    <h2>Status Lahan</h2>
-    <div id="status-lahan" class="chips"></div>
-    <h2>Panen Terbaru</h2>
-    <div class="tablewrap"><table><thead><tr><th>Tanggal</th><th>Lahan</th><th>Komoditas</th><th class="num">Jumlah</th><th class="num">Nilai</th></tr></thead><tbody id="recent"></tbody></table></div>
+    <div class="hero-angka" id="hero-angka">
+      <div class="card"><span>Komoditas dipantau</span><b id="h-komoditas">–</b></div>
+      <div class="card"><span>Data harga terakhir</span><b id="h-periode">–</b></div>
+      <div class="card"><span>Provinsi di peta</span><b id="h-provinsi">–</b></div>
+      <div class="card"><span>Produksi padi 2024</span><b id="h-padi">–</b></div>
+    </div>
   </section>
 
-  <!-- Lahan -->
-  <section id="tab-lahan" class="panel">
-    <div class="toolbar">
-      <input id="cari-lahan" type="search" placeholder="Cari nama lahan, pemilik, komoditas…">
-      <button class="btn primary" id="tambah-lahan">+ Tambah Lahan</button>
+  <section class="blok">
+    <div class="blok-kepala">
+      <p class="eyebrow">Di bagian pasar</p>
+      <h2>Semua data bisa ditambah, dilihat, diubah, dan dihapus</h2>
     </div>
-    <div class="tablewrap"><table>
-      <thead><tr><th>ID</th><th>Nama Lahan</th><th>Pemilik</th><th>Lokasi</th><th class="num">Luas (ha)</th><th>Jenis Tanah</th><th>Komoditas</th><th>Status</th><th></th></tr></thead>
-      <tbody id="tbl-lahan"></tbody>
-    </table></div>
+    <div class="fitur">
+      <article><span class="ikon">01</span><h3>Lahan</h3><p>Petani mendaftarkan lahan: lokasi, luas, jenis tanah, komoditas, dan status tanam.</p><p class="crud">Tambah · Lihat · Ubah · Hapus</p></article>
+      <article><span class="ikon">02</span><h3>Panen</h3><p>Setiap panen dicatat per lahan, lengkap dengan jumlah (gram sampai ton), kualitas, dan harga per kg.</p><p class="crud">Tambah · Lihat · Ubah · Hapus</p></article>
+      <article><span class="ikon">03</span><h3>Penjualan</h3><p>Pembeli membeli dari katalog dan membayar lewat QRIS simulasi. Stok panen berkurang otomatis.</p><p class="crud">Tambah · Lihat · Ubah · Batal</p></article>
+      <article><span class="ikon">04</span><h3>Harga pangan</h3><p>Admin memperbarui harga di halaman ini setiap ada data baru, misalnya per triwulan atau saat musim panen.</p><p class="crud">Tambah · Lihat · Ubah · Hapus</p></article>
+    </div>
   </section>
 
-  <!-- Panen -->
-  <section id="tab-panen" class="panel">
-    <div class="toolbar">
-      <select id="filter-lahan"><option value="">Semua lahan</option></select>
-      <button class="btn primary" id="tambah-panen">+ Catat Panen</button>
+  <!-- ================= HARGA PANGAN ================= -->
+  <section id="harga" class="blok">
+    <div class="blok-kepala baris">
+      <div>
+        <p class="eyebrow">Harga pangan</p>
+        <h2>Harga terbaru</h2>
+        <p class="ket">Harga rata-rata per kg. Angka kecil di bawah harga menunjukkan perubahan dari periode sebelumnya.</p>
+      </div>
+      <select id="pilih-komoditas" aria-label="Pilih komoditas"><option value="">Semua komoditas</option></select>
     </div>
-    <div class="tablewrap"><table>
-      <thead><tr><th>ID</th><th>Tanggal</th><th>Lahan</th><th>Komoditas</th><th class="num">Jumlah</th><th class="num">Sisa Stok</th><th>Kualitas</th><th class="num">Harga/kg</th><th class="num">Total</th><th>Catatan</th><th></th></tr></thead>
-      <tbody id="tbl-panen"></tbody>
-    </table></div>
+    <div class="harga-grid" id="harga-terbaru"><p class="empty">Memuat harga…</p></div>
+
+    <div class="grafik-kartu">
+      <div class="grafik-atas"><h3 id="grafik-judul">Perkembangan harga</h3><div class="legenda" id="grafik-legenda"></div></div>
+      <svg id="grafik" viewBox="0 0 720 260" role="img" aria-label="Grafik perkembangan harga"></svg>
+    </div>
+
+    <details class="riwayat">
+      <summary>Lihat semua data harga</summary>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Periode</th><th>Komoditas</th><th>Varian</th><th>Tingkat</th><th>Wilayah</th><th class="num">Harga</th><th>Sumber</th></tr></thead>
+        <tbody id="tbl-harga"></tbody>
+      </table></div>
+    </details>
   </section>
 
-  <!-- Penjualan (admin & penjual) -->
-  <section id="tab-penjualan" class="panel">
-    <div class="toolbar">
-      <select id="filter-bayar"><option value="">Semua status bayar</option><option>Belum Lunas</option><option>Menunggu Konfirmasi</option><option>Lunas</option></select>
-      <button class="btn primary" id="tambah-jual">+ Catat Penjualan</button>
+  <!-- ================= PETA PRODUKSI ================= -->
+  <section id="peta" class="blok">
+    <div class="blok-kepala">
+      <p class="eyebrow">Peta produksi 2024</p>
+      <h2>Provinsi penghasil terbesar</h2>
+      <p class="ket">Pilih komoditas, lalu arahkan kursor atau ketuk provinsi untuk melihat angkanya.</p>
     </div>
-    <div class="tablewrap"><table>
-      <thead><tr><th>ID</th><th>Tanggal</th><th>Hasil Panen</th><th>Pembeli</th><th>Jenis</th><th class="num">Jumlah</th><th class="num">Harga Jual/kg</th><th class="num">Total</th><th>Status</th><th></th></tr></thead>
-      <tbody id="tbl-jual"></tbody>
-    </table></div>
+    <div class="chips" id="chips-peta"></div>
+    <div class="peta-wadah">
+      <div class="peta-kartu">
+        <svg id="peta-svg" role="img" aria-label="Peta produksi per provinsi"></svg>
+        <div class="peta-tip" id="peta-tip" hidden></div>
+        <ul class="peta-legenda" id="peta-legenda"></ul>
+      </div>
+      <aside class="peringkat">
+        <h3 id="peringkat-judul">5 provinsi teratas</h3>
+        <ol id="peringkat"></ol>
+        <p class="ket" id="peta-total"></p>
+      </aside>
+    </div>
   </section>
 
-  <!-- Katalog (pembeli) -->
-  <section id="tab-katalog" class="panel">
-    <div class="toolbar"><input id="cari-katalog" type="search" placeholder="Cari komoditas, lokasi, penjual…"></div>
-    <div class="produk-grid" id="katalog"></div>
+  <!-- ================= ESTIMASI KIRIM ================= -->
+  <section id="kirim" class="blok">
+    <div class="blok-kepala">
+      <p class="eyebrow">Estimasi kirim</p>
+      <h2>Berapa ongkos dan lama kirim antarprovinsi?</h2>
+      <p class="ket">Contoh: perusahaan di Kalimantan Timur membeli 2 ton cabai dari petani di Jawa Tengah. Pilih provinsi asal dan tujuan, lalu isi jumlahnya.</p>
+    </div>
+    <form class="est-form" id="form-estimasi">
+      <label>Asal (lahan penjual)<select name="asal" required></select></label>
+      <label>Tujuan (pembeli)<select name="tujuan" required></select></label>
+      <label>Jumlah (ton)<input name="ton" type="number" step="0.001" min="0.001" max="10000" value="2" required></label>
+      <label>Komoditas<input name="komoditas" value="Cabai" maxlength="40"></label>
+      <button class="btn primary">Hitung</button>
+    </form>
+    <div class="est-hasil" id="hasil-estimasi"></div>
   </section>
 
-  <!-- Pembelian saya (pembeli) -->
-  <section id="tab-pembelian" class="panel">
-    <div class="cards">
-      <div class="card"><span>Jumlah Transaksi</span><b id="b-jumlah">–</b></div>
-      <div class="card"><span>Total Dibeli</span><b id="b-kg">–</b></div>
-      <div class="card"><span>Sudah Dibayar</span><b id="b-lunas">–</b></div>
-      <div class="card"><span>Belum Dibayar</span><b id="b-belum">–</b></div>
+  <section class="ajak">
+    <div>
+      <h2>Punya hasil panen untuk dijual?</h2>
+      <p>Daftar sebagai penjual, catat lahan dan panen Anda, lalu pembeli bisa langsung membelinya dari katalog.</p>
     </div>
-    <h2>Riwayat Pembelian</h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>ID</th><th>Tanggal</th><th>Produk</th><th>Penjual</th><th class="num">Jumlah</th><th class="num">Harga/kg</th><th class="num">Total</th><th>Status</th><th></th></tr></thead>
-      <tbody id="tbl-beli"></tbody>
-    </table></div>
-  </section>
-
-  <!-- Pengguna (admin) -->
-  <section id="tab-pengguna" class="panel">
-    <div class="toolbar">
-      <select id="filter-role"><option value="">Semua peran</option><option value="admin">Admin</option><option value="penjual">Penjual</option><option value="pembeli">Pembeli</option></select>
-      <button class="btn primary" id="tambah-user">+ Tambah Pengguna</button>
-    </div>
-    <div class="tablewrap"><table>
-      <thead><tr><th>ID</th><th>Nama</th><th>Username</th><th>Peran</th><th>Terdaftar</th><th></th></tr></thead>
-      <tbody id="tbl-user"></tbody>
-    </table></div>
+    <a class="btn besar terang" href="/pasar/#daftar-penjual" target="_blank" rel="noopener">Jadi Seller ↗</a>
   </section>
 </main>
-</div>
 
-<!-- ================= DIALOG ================= -->
-<dialog id="dlg-lahan">
-  <form method="dialog" id="form-lahan">
-    <h3 id="judul-lahan">Tambah Lahan</h3>
-    <input type="hidden" name="id">
-    <label>Nama Lahan<input name="nama_lahan" required></label>
-    <label class="admin-only">Pemilik (penjual)<select name="pemilik_id"></select></label>
-    <label>Lokasi<input name="lokasi" required></label>
-    <div class="row">
-      <label>Luas (ha)<input name="luas_ha" type="number" step="0.01" min="0.01" required></label>
-      <label>Jenis Tanah<input name="jenis_tanah" list="tanah"></label>
-    </div>
-    <datalist id="tanah"><option>Aluvial</option><option>Andosol</option><option>Latosol</option><option>Podsolik</option><option>Regosol</option><option>Gambut</option></datalist>
-    <div class="row">
-      <label>Komoditas<input name="komoditas" required list="komoditas"></label>
-      <label>Status<select name="status"><option>Persiapan</option><option>Tanam</option><option>Siap Panen</option><option>Bera</option></select></label>
-    </div>
-    <datalist id="komoditas"><option>Padi</option><option>Jagung</option><option>Cabai</option><option>Kedelai</option><option>Bawang Merah</option><option>Tomat</option></datalist>
-    <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Simpan</button></div>
-  </form>
-</dialog>
-
-<dialog id="dlg-panen">
-  <form method="dialog" id="form-panen">
-    <h3 id="judul-panen">Catat Panen</h3>
-    <input type="hidden" name="id">
-    <label>Lahan<select name="lahan_id" required></select></label>
-    <div class="row">
-      <label>Tanggal Panen<input name="tanggal_panen" type="date" required></label>
-      <label>Komoditas<input name="komoditas" required list="komoditas"></label>
-    </div>
-    <div class="row">
-      <label>Jumlah<span class="jumlah-satuan"><input name="jumlah" type="number" step="any" min="0.001" required><select name="satuan" aria-label="Satuan"><option value="g">gram</option><option value="ons">ons (100 g)</option><option value="kg" selected>kg</option><option value="kuintal">kuintal (100 kg)</option><option value="ton">ton</option></select></span></label>
-      <label>Kualitas<select name="kualitas"><option>A</option><option>B</option><option>C</option></select></label>
-    </div>
-    <label>Harga per kg (Rp)<input name="harga_per_kg" type="number" step="1" min="0" required></label>
-    <label>Catatan<input name="catatan"></label>
-    <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Simpan</button></div>
-  </form>
-</dialog>
-
-<dialog id="dlg-jual">
-  <form method="dialog" id="form-jual">
-    <h3 id="judul-jual">Catat Penjualan</h3>
-    <input type="hidden" name="id">
-    <label>Hasil Panen<select name="panen_id" required></select></label>
-    <p class="hint" id="info-stok"></p>
-    <div class="row">
-      <label>Pembeli<input name="pembeli" required></label>
-      <label>Jenis Pembeli<select name="jenis_pembeli"><option>Tengkulak</option><option>Pasar</option><option>Koperasi</option><option>Pabrik</option><option>Perorangan</option></select></label>
-    </div>
-    <div class="row">
-      <label>Jumlah<span class="jumlah-satuan"><input name="jumlah" type="number" step="any" min="0.001" required><select name="satuan" aria-label="Satuan"><option value="g">gram</option><option value="ons">ons (100 g)</option><option value="kg" selected>kg</option><option value="kuintal">kuintal (100 kg)</option><option value="ton">ton</option></select></span></label>
-      <label>Harga Jual per kg (Rp)<input name="harga_jual_per_kg" type="number" step="1" min="0" required></label>
-    </div>
-    <div class="row">
-      <label>Tanggal Jual<input name="tanggal_jual" type="date" required></label>
-      <label>Status Bayar<select name="status_bayar"><option>Belum Lunas</option><option>Menunggu Konfirmasi</option><option>Lunas</option></select></label>
-    </div>
-    <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Simpan</button></div>
-  </form>
-</dialog>
-
-<dialog id="dlg-beli">
-  <form method="dialog" id="form-beli">
-    <h3>Beli <span id="beli-nama"></span></h3>
-    <input type="hidden" name="panen_id">
-    <p class="hint" id="beli-info"></p>
-    <label>Jumlah<span class="jumlah-satuan"><input name="jumlah" type="number" step="any" min="0.001" required><select name="satuan" aria-label="Satuan"><option value="g">gram</option><option value="ons">ons (100 g)</option><option value="kg" selected>kg</option><option value="kuintal">kuintal (100 kg)</option><option value="ton">ton</option></select></span></label>
-    <p class="total">Total: <b id="beli-total">Rp 0</b></p>
-    <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Beli Sekarang</button></div>
-  </form>
-</dialog>
-
-<dialog id="dlg-user">
-  <form method="dialog" id="form-user">
-    <h3 id="judul-user">Tambah Pengguna</h3>
-    <input type="hidden" name="id">
-    <label>Nama<input name="nama" required></label>
-    <div class="row">
-      <label>Username<input name="username" required></label>
-      <label>Peran<select name="role"><option value="pembeli">Pembeli</option><option value="penjual">Penjual</option><option value="admin">Admin</option></select></label>
-    </div>
-    <label>Password <small id="pw-hint"></small><input name="password" type="password" minlength="6"></label>
-    <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Simpan</button></div>
-  </form>
-</dialog>
-
-<dialog id="dlg-bayar">
-  <div class="bayar">
-    <div class="bayar-atas">
-      <div><b>QRIS</b><span class="sim">SIMULASI</span></div>
-      <button type="button" class="btn sm" data-close>Tutup</button>
-    </div>
-    <p class="merchant" id="bayar-merchant"></p>
-    <div class="qr" id="bayar-qr"></div>
-    <p class="bayar-total" id="bayar-total"></p>
-    <p class="bayar-kode">Kode bayar: <b id="bayar-kode"></b> · berlaku <span id="bayar-timer">15:00</span></p>
-    <ol class="bayar-langkah">
-      <li>Buka aplikasi GoPay, DANA, OVO, ShopeePay, atau m-banking.</li>
-      <li>Pilih <b>Scan / Bayar QRIS</b>, arahkan ke kode di atas.</li>
-      <li>Setelah membayar, tekan tombol di bawah.</li>
-    </ol>
-    <p class="peringatan">Ini <b>simulasi</b> untuk tugas: QR tidak terhubung ke bank atau e-wallet mana pun dan tidak ada uang yang berpindah.</p>
-    <button type="button" class="btn primary block" id="bayar-sudah">Saya sudah bayar</button>
+<footer class="kaki">
+  <div class="kaki-isi">
+    <div class="brand"><img class="logo-img" src="aset/logo-mark.png" alt=""><span class="brand-text">TaniMart<small>Kelompok 10 · Cloud Computing</small></span></div>
+    <p>Sumber data: Badan Pusat Statistik (BPS), tabel harga gabah bulanan 2024, produksi padi menurut provinsi 2024, dan produksi tanaman perkebunan menurut provinsi 2024.
+      Batas provinsi: denyherianto/indonesia-geojson-topojson-maps-with-38-provinces (CC BY 4.0), disederhanakan.</p>
   </div>
-</dialog>
+</footer>
 
-<!-- ================= CHATBOT ASISTEN ================= -->
-<button class="chat-fab" id="chat-buka" aria-label="Buka Asisten RantaiTani" title="Butuh bantuan?">
-  <svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>
-</button>
-<section class="chat" id="chat" hidden aria-label="Asisten RantaiTani">
-  <header class="chat-atas">
-    <img src="aset/logo-mark.png" alt="">
-    <div><b>Asisten RantaiTani</b><small>Pembayaran · pembelian · akun · cara pakai</small></div>
-    <button class="chat-x" id="chat-tutup" aria-label="Tutup">×</button>
-  </header>
-  <div class="chat-isi" id="chat-isi" aria-live="polite"></div>
-  <div class="chat-saran" id="chat-saran"></div>
-  <form class="chat-form" id="chat-form">
-    <input name="pesan" placeholder="Tulis pertanyaan…" autocomplete="off" maxlength="500">
-    <button aria-label="Kirim"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-7z"/></svg></button>
-  </form>
-</section>
-
-<div id="toast" role="status"></div>
-<script src="app.js"></script>
+<script src="estimasi.js"></script>
+<script src="info.js"></script>
 </body>
 </html>
