@@ -110,6 +110,7 @@ function keluar(pesan) {
   ["#tbl-lahan", "#tbl-panen", "#tbl-jual", "#tbl-beli", "#tbl-user", "#katalog", "#recent", "#status-lahan"].forEach((s) => ($(s).innerHTML = ""));
   document.querySelectorAll("dialog[open]").forEach((d) => d.close());
   if (typeof chatReset === "function") chatReset();
+  if (typeof ulasanSaya !== "undefined") ulasanSaya = null;
   $("#app").hidden = true;
   $("#login-screen").hidden = false;
   $("#login-screen video")?.play?.().catch(() => {});

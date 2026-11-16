@@ -125,6 +125,15 @@ cek("pembayaran transfer bank (VA)", req("GET", f"/api/penjualan/{oid}/pembayara
 cek("metode bayar tidak dikenal (400)", req("POST", "/api/penjualan", {"panen_id": pid, "jumlah_kg": 1, "metode_bayar": "OVO"}, R)[0], 400)
 k, j = req("GET", "/api/auth/notifikasi", token=D)
 cek("penjual dapat notifikasi pesanan", 200 if k == 200 and any("Pesanan baru" in n["judul"] for n in j["data"]["daftar"]) else 0, 200)
+cek("daftar ulasan", req("GET", f"/api/penjualan/ulasan?panen_id={pid}", token=R)[0], 200)
+cek("ulasan sebelum pesanan selesai ditolak (422)", req("POST", f"/api/penjualan/{oid}/ulasan", {"rating": 5}, R)[0], 422)
+cek("penjual tidak bisa mengulas (403)", req("POST", f"/api/penjualan/{oid}/ulasan", {"rating": 5}, D)[0], 403)
+cek("ulasan pada pesanan selesai", req("POST", f"/api/penjualan/{sid}/ulasan", {"rating": 4, "komentar": "UJI ulasan"}, R)[0], 201)
+cek("ulasan ganda ditolak (409)", req("POST", f"/api/penjualan/{sid}/ulasan", {"rating": 3}, R)[0], 409)
+cek("rating di luar 1-5 ditolak (400)", req("POST", f"/api/penjualan/{sid}/ulasan", {"rating": 9}, R)[0], 400)
+_, j = req("GET", f"/api/penjualan/ulasan?panen_id={pid}", token=R)
+for x in j.get("data", []):
+    req("DELETE", f"/api/penjualan/ulasan/{x['id']}", token=A)
 cek("estimasi per kota", req("GET", "/api/info/publik/estimasi?asal=JAWA%20BARAT&tujuan=KALIMANTAN%20TIMUR&ton=0.002&kota_asal=3204&kota_tujuan=6471")[0], 200)
 cek("daftar kota", req("GET", "/api/info/publik/kota?provinsi=BALI")[0], 200)
 

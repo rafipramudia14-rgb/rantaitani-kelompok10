@@ -216,3 +216,18 @@ i[class^="logo-"]{display:inline-grid;place-items:center;width:30px;height:30px;
 .tk-kontak{grid-column:1/-1;margin:0;font-size:.85rem;opacity:.9}
 .tk-sub{margin:6px 0 0;font:700 1.15rem var(--display)}
 @media (max-width:860px){.kr-daftar li{grid-template-columns:56px 1fr 30px}.kr-jml,.kr-harga{grid-column:2/3}.tk-kepala{grid-template-columns:auto 1fr}.tk-angka{grid-column:1/-1;text-align:left}}
+
+/* ---- Ulasan & rating */
+.ul-bintang{color:#e0a526;letter-spacing:1px}
+.ck-ulasan-wadah summary{cursor:pointer;font-weight:700;font-size:.88rem;color:var(--green)}
+#ck-ulasan{display:grid;gap:8px;margin-top:8px;max-height:220px;overflow-y:auto}
+.ul-ringkas{display:flex;align-items:baseline;gap:8px}.ul-ringkas b{font:800 1.6rem var(--sans);color:var(--ink)}.ul-ringkas small{color:var(--muted)}
+.ul-item{border-top:1px solid var(--line);padding-top:8px;font-size:.85rem}.ul-item p{margin:4px 0}.ul-item small,.ul-kosong{color:var(--muted);font-size:.78rem}
+.ul-pilih{display:flex;flex-direction:row-reverse;justify-content:center;gap:6px}
+.ul-pilih input{position:absolute;opacity:0}
+.ul-pilih label{font-size:2.6rem;color:#d9d2bd;cursor:pointer;transition:color .15s,transform .15s;display:block}
+.ul-pilih label:hover,.ul-pilih label:hover~label,.ul-pilih input:checked~label{color:#e0a526}
+.ul-pilih label:hover{transform:scale(1.15)}
+.ul-pilih input:focus-visible+label{outline:2px solid var(--green);border-radius:6px}
+#dlg-ulasan{width:min(480px,calc(100% - 32px))}
+.ul-tombol{border-color:#e0a526;color:#9a6c10}

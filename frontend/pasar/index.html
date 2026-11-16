@@ -374,6 +374,7 @@
         <p class="ck-harga" id="ck-harga"></p>
         <div class="ck-info" id="ck-info"></div>
         <p class="ck-desk" id="ck-desk"></p>
+        <details class="ck-ulasan-wadah" open><summary>Ulasan pembeli</summary><div id="ck-ulasan"></div></details>
         <label>Jumlah<span class="jumlah-satuan"><input name="jumlah" type="number" step="any" min="0.001" required><select name="satuan" aria-label="Satuan"><option value="g">gram</option><option value="ons">ons</option><option value="kg" selected>kg</option><option value="kuintal">kuintal</option><option value="ton">ton</option></select></span></label>
         <fieldset class="ck-alamat"><legend>Kirim ke</legend>
           <div class="row"><select name="provinsi_tujuan" required aria-label="Provinsi"></select><select name="kota_tujuan_id" required aria-label="Kab/kota"></select></div>
@@ -423,6 +424,22 @@
     <h4 class="tk-sub">Semua produk</h4>
     <div class="mp-grid" id="tk-produk"></div>
   </div>
+</dialog>
+
+<dialog id="dlg-ulasan">
+  <form id="form-ulasan" class="isi">
+    <div class="bayar-atas"><h3 style="margin:0;font:700 1.35rem var(--display)">Ulasan untuk <span id="ul-produk"></span></h3><button type="button" class="btn sm" data-close>Tutup</button></div>
+    <input type="hidden" name="sid"><input type="hidden" name="uid">
+    <div class="ul-pilih" role="radiogroup" aria-label="Rating">
+      <input type="radio" name="rating" value="5" id="b5"><label for="b5" title="5 bintang">★</label>
+      <input type="radio" name="rating" value="4" id="b4"><label for="b4" title="4 bintang">★</label>
+      <input type="radio" name="rating" value="3" id="b3"><label for="b3" title="3 bintang">★</label>
+      <input type="radio" name="rating" value="2" id="b2"><label for="b2" title="2 bintang">★</label>
+      <input type="radio" name="rating" value="1" id="b1"><label for="b1" title="1 bintang">★</label>
+    </div>
+    <label>Komentar (opsional)<textarea name="komentar" maxlength="500" rows="3" placeholder="Bagaimana kualitas, kesegaran, dan pengirimannya?"></textarea></label>
+    <div class="actions"><button type="button" class="btn danger" id="ul-hapus" hidden>Hapus ulasan</button><button class="btn primary">Kirim ulasan</button></div>
+  </form>
 </dialog>
 
 <dialog id="dlg-pembayaran">
@@ -560,5 +577,6 @@
 <script src="../app.js"></script>
 <script src="../belanja.js"></script>
 <script src="../keranjang.js"></script>
+<script src="../ulasan.js"></script>
 </body>
 </html>

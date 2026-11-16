@@ -173,6 +173,11 @@ def katalog():
     if toko is None:
         return err("layanan-auth tidak dapat dihubungi (data toko)", 503)
     with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT panen_id, AVG(rating) r, COUNT(*) n FROM ulasan GROUP BY panen_id")
+        rating = {x["panen_id"]: (round(float(x["r"]), 1), x["n"]) for x in cur.fetchall()}
+        cur.execute("SELECT penjual_id, AVG(rating) r, COUNT(*) n FROM ulasan GROUP BY penjual_id")
+        rating_toko = {x["penjual_id"]: (round(float(x["r"]), 1), x["n"]) for x in cur.fetchall()}
+    with conn() as c, c.cursor() as cur:
         t = terjual(cur)
     items = []
     for p in panen:
@@ -182,7 +187,9 @@ def katalog():
             items.append({"toko": tk["nama_toko"], "toko_id": tk["id"], "provinsi": tk["provinsi"], "kota": tk["kota"], "kota_id": tk.get("kota_id"),
                           "nama_produk": p.get("nama_produk") or p["komoditas"], "deskripsi": p.get("deskripsi"), "foto": p.get("foto"),
                           "harga_normal": p["harga_per_kg"], "promo_aktif": p.get("promo_aktif", False), "diskon_persen": p.get("diskon_persen", 0),
-                          "promo_sampai": p.get("promo_sampai"), "unggulan": p.get("unggulan", False), "terjual_kg": t.get(p["id"], 0.0), "panen_id": p["id"], "komoditas": p["komoditas"], "kualitas": p["kualitas"],
+                          "promo_sampai": p.get("promo_sampai"), "unggulan": p.get("unggulan", False), "terjual_kg": t.get(p["id"], 0.0),
+                          "rating": rating.get(p["id"], (None, 0))[0], "jumlah_ulasan": rating.get(p["id"], (None, 0))[1],
+                          "rating_toko": rating_toko.get(p["pemilik_id"], (None, 0))[0], "ulasan_toko": rating_toko.get(p["pemilik_id"], (None, 0))[1], "panen_id": p["id"], "komoditas": p["komoditas"], "kualitas": p["kualitas"],
                           "tanggal_panen": p["tanggal_panen"], "lahan_id": p["lahan_id"],
                           "penjual_id": p["pemilik_id"], "harga_per_kg": p.get("harga_aktif", p["harga_per_kg"]), "sisa_kg": sisa})
     return ok(items, message=f"{len(items)} produk tersedia")
@@ -442,6 +449,93 @@ def qris(sid):
     return ok({"kode_bayar": kode, "merchant": MERCHANT, "total": total, "berlaku_menit": BERLAKU_MENIT,
                "status_bayar": row["status_bayar"], "payload": payload, "qr_svg": svg, "simulasi": True},
               message="kode QRIS simulasi dibuat")
+
+
+# ---------------------------------------------------------------- Ulasan & rating
+def cek_ulasan(b):
+    try:
+        rating = int(b.get("rating", 0))
+    except (TypeError, ValueError):
+        rating = 0
+    if not 1 <= rating <= 5:
+        return None, err("rating harus 1 sampai 5 bintang", 400)
+    komentar = (b.get("komentar") or "").strip()
+    if len(komentar) > 500:
+        return None, err("komentar maksimal 500 karakter", 400)
+    return (rating, komentar or None), None
+
+
+@app.get("/api/penjualan/ulasan")
+def daftar_ulasan():
+    """Filter: ?panen_id= atau ?penjual_id=. Pembeli/penjual/admin yang login boleh membaca."""
+    sql, args = "SELECT * FROM ulasan WHERE 1=1", []
+    for f in ("panen_id", "penjual_id", "pembeli_id"):
+        if request.args.get(f):
+            sql += f" AND {f}=%s"
+            args.append(request.args[f])
+    with conn() as c, c.cursor() as cur:
+        cur.execute(sql + " ORDER BY id DESC LIMIT 100", args)
+        rows = [clean(x) for x in cur.fetchall()]
+    return ok(rows, message=f"{len(rows)} ulasan")
+
+
+@app.post("/api/penjualan/<int:sid>/ulasan")
+def beri_ulasan(sid):
+    u = pengguna()
+    if not u or u[1] != "pembeli":
+        return err("hanya pembeli yang bisa memberi ulasan", 403)
+    nilai, gagal = cek_ulasan(request.get_json(silent=True) or {})
+    if gagal:
+        return gagal
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
+        row = cur.fetchone()
+        if not row or row["pembeli_id"] != u[0]:
+            return err("pesanan tidak ditemukan", 404)
+        if row["status_pesanan"] != "Selesai":
+            return err("ulasan bisa diberikan setelah pesanan selesai (diterima)", 422)
+        try:
+            cur.execute("INSERT INTO ulasan (penjualan_id, panen_id, penjual_id, pembeli_id, nama_pembeli, rating, komentar) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s)", (sid, row["panen_id"], row["penjual_id"], u[0], u[2], *nilai))
+        except pymysql.err.IntegrityError:
+            return err("pesanan ini sudah diulas; ubah ulasan yang ada", 409)
+        cur.execute("SELECT * FROM ulasan WHERE id=%s", (cur.lastrowid,))
+        ul = cur.fetchone()
+    kabari(row["penjual_id"], f"Ulasan baru {'★' * nilai[0]}", f"{u[2]}: {nilai[1] or '(tanpa komentar)'}", "penjualan")
+    return ok(clean(ul), 201, "terima kasih, ulasan tersimpan")
+
+
+@app.put("/api/penjualan/ulasan/<int:uid>")
+def ubah_ulasan(uid):
+    u = pengguna()
+    nilai, gagal = cek_ulasan(request.get_json(silent=True) or {})
+    if gagal:
+        return gagal
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM ulasan WHERE id=%s", (uid,))
+        ul = cur.fetchone()
+        if not ul:
+            return err(f"ulasan id {uid} tidak ditemukan", 404)
+        if not u or ul["pembeli_id"] != u[0]:
+            return err("anda hanya boleh mengubah ulasan sendiri", 403)
+        cur.execute("UPDATE ulasan SET rating=%s, komentar=%s WHERE id=%s", (*nilai, uid))
+        cur.execute("SELECT * FROM ulasan WHERE id=%s", (uid,))
+        ul = cur.fetchone()
+    return ok(clean(ul), message="ulasan diperbarui")
+
+
+@app.delete("/api/penjualan/ulasan/<int:uid>")
+def hapus_ulasan(uid):
+    u = pengguna()
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM ulasan WHERE id=%s", (uid,))
+        ul = cur.fetchone()
+        if not ul:
+            return err(f"ulasan id {uid} tidak ditemukan", 404)
+        if not u or not (u[1] == "admin" or ul["pembeli_id"] == u[0]):
+            return err("hanya penulis ulasan atau admin yang boleh menghapus", 403)
+        cur.execute("DELETE FROM ulasan WHERE id=%s", (uid,))
+    return ok({"id": uid}, message="ulasan dihapus")
 
 
 @app.get("/api/penjualan/<int:sid>/pembayaran")

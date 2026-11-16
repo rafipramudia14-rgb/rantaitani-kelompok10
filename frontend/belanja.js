@@ -34,7 +34,7 @@ function kartuProduk(p) {
       <h3>${esc(p.nama_produk)}</h3>
       <p class="mp-harga">${rp(p.harga_per_kg)}<small>/kg</small></p>
       ${p.promo_aktif ? `<p class="mp-coret">${rp(p.harga_normal)}</p>` : ""}
-      <p class="mp-lokasi">📍 ${esc(p.kota || "-")}</p>
+      <p class="mp-lokasi">📍 ${esc(p.kota || "-")}${p.rating ? ` · <span class="ul-bintang">★</span> ${p.rating} (${p.jumlah_ulasan})` : ""}</p>
       <p class="mp-meta"><span class="mp-cek">✓</span> <a href="#" class="tk-link" data-buka-toko="${p.toko_id}">${esc(p.toko)}</a> · ${p.terjual_kg ? "terjual " + berat(p.terjual_kg) : "baru"}</p>
     </div></article>`;
 }
@@ -78,6 +78,7 @@ async function bukaProduk(pid) {
   f.provinsi_tujuan.addEventListener("change", hitungCheckout);
   $("#dlg-produk").showModal();
   hitungCheckout();
+  tampilUlasanProduk(p.panen_id);
 }
 let tundaOngkir;
 function hitungCheckout() {
@@ -153,6 +154,7 @@ function renderPesanan() {
   $("#ps-daftar").innerHTML = rows.map((j) => {
     const p = panenList.find((x) => x.id == j.panen_id) || {};
     const k = katalogList.find((x) => x.panen_id == j.panen_id);
+    if (ulasanSaya === null) { ulasanSaya = {}; muatUlasanSaya(); }
     return `<article class="ps-kartu">
       <header><b>${esc(k?.toko || "Toko #" + j.penjual_id)}</b><span>#${j.id} · ${esc(j.tanggal_jual)}</span>${badgePesanan(j.status_pesanan)}</header>
       <div class="ps-isi"><div class="ps-foto">${fotoProduk({ foto: k?.foto || p.foto, komoditas: p.komoditas || "", nama_produk: k?.nama_produk })}</div>
@@ -164,6 +166,7 @@ function renderPesanan() {
         ${j.status_bayar === "Menunggu Konfirmasi" ? '<span class="tag">menunggu konfirmasi penjual</span>' : ""}
         ${j.jalur ? `<button class="btn sm" data-lacak="${j.id}">Lacak pengiriman</button>` : ""}
         ${j.status_pesanan === "Dikirim" ? `<button class="btn primary sm" data-status="Selesai" data-id="${j.id}">Pesanan diterima</button>` : ""}
+        ${j.status_pesanan === "Selesai" ? `<button class="btn sm ul-tombol" data-ulas="${j.id}">${ulasanSaya?.[j.id] ? bintang(ulasanSaya[j.id].rating) + " Ubah ulasan" : "★ Beri ulasan"}</button>` : ""}
         ${["Menunggu Bayar", "Dibayar"].includes(j.status_pesanan) ? `<button class="btn sm danger" data-batal="${j.id}">Batalkan</button>` : ["Diproses", "Dikirim"].includes(j.status_pesanan) ? '<span class="tag">tidak bisa dibatalkan</span>' : ""}</footer>
     </article>`;
   }).join("") || `<p class="empty">Belum ada pesanan di sini. <a href="#" data-tab-ke="beranda">Mulai belanja</a></p>`;
