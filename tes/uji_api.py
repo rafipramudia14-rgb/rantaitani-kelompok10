@@ -1,4 +1,4 @@
-"""Uji API TaniMart lewat gateway (http://localhost:8090). Jalankan: python tes/uji_api.py
+"""Uji API TaniMart lewat gateway (http://127.0.0.1:8090). Jalankan: python tes/uji_api.py
 
 Semua data uji diberi nama "UJI ..." dan dihapus lagi di akhir. Butuh akun demo bawaan
 (admin/admin123, darto|siti|ujang/petani123, rina/pembeli123).
@@ -8,7 +8,7 @@ import sys
 import urllib.error
 import urllib.request
 
-B = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8090"
+B = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8090"
 hasil = []
 
 

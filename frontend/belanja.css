@@ -182,3 +182,7 @@ i[class^="logo-"]{display:inline-grid;place-items:center;width:30px;height:30px;
   .ps-total{grid-column:1/-1;text-align:left}
 }
 @media (max-width:560px){.mp-grid{grid-template-columns:repeat(2,1fr);gap:10px}.mp-isi{padding:10px}}
+
+/* ---- Pesanan masuk (penjual): alamat kirim */
+.kirim-sel{white-space:normal;min-width:220px;max-width:300px}
+.kirim-sel small,td .num small,td small{color:var(--muted);font-size:.76rem}

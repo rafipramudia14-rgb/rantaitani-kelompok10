@@ -134,7 +134,7 @@
       <button class="btn primary" id="tambah-jual">+ Catat Penjualan</button>
     </div>
     <div class="tablewrap"><table>
-      <thead><tr><th>ID</th><th>Tanggal</th><th>Hasil Panen</th><th>Pembeli</th><th>Jenis</th><th class="num">Jumlah</th><th class="num">Harga Jual/kg</th><th class="num">Total</th><th>Bayar</th><th>Pesanan</th><th></th></tr></thead>
+      <thead><tr><th>ID</th><th>Tanggal</th><th>Hasil Panen</th><th>Pembeli &amp; alamat kirim</th><th>Jenis / Bayar</th><th class="num">Jumlah</th><th class="num">Harga Jual/kg</th><th class="num">Total</th><th>Bayar</th><th>Pesanan</th><th></th></tr></thead>
       <tbody id="tbl-jual"></tbody>
     </table></div>
   </section>
@@ -245,7 +245,7 @@
       <button class="btn primary" id="tambah-user">+ Tambah Pengguna</button>
     </div>
     <div class="tablewrap"><table>
-      <thead><tr><th>ID</th><th>Nama</th><th>Username</th><th>Peran</th><th>Terdaftar</th><th></th></tr></thead>
+      <thead><tr><th>ID</th><th>Nama</th><th>Username / Email</th><th>Peran</th><th>Terdaftar</th><th></th></tr></thead>
       <tbody id="tbl-user"></tbody>
     </table></div>
   </section>
@@ -475,6 +475,7 @@
     <h3 id="judul-user">Tambah Pengguna</h3>
     <input type="hidden" name="id">
     <label>Nama<input name="nama" required></label>
+    <label>Email (untuk login)<input name="email" type="email" maxlength="120" placeholder="nama@email.com"></label>
     <div class="row">
       <label>Username<input name="username" required></label>
       <label>Peran<select name="role"><option value="pembeli">Pembeli</option><option value="penjual">Penjual</option><option value="admin">Admin</option></select></label>

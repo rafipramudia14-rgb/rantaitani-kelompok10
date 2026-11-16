@@ -281,10 +281,10 @@ function renderPenjualan() {
   const fb = $("#filter-bayar").value;
   const rows = fb ? jualList.filter((j) => j.status_bayar === fb) : jualList;
   $("#tbl-jual").innerHTML = rows.length ? rows.map((j) => `
-    <tr><td>${j.id}</td><td>${esc(j.tanggal_jual)}</td><td>${esc(labelPanen(j.panen_id))}</td><td><b>${esc(j.pembeli)}</b>${j.pembeli_id ? ' <span class="tag">akun</span>' : ""}</td><td>${esc(j.jenis_pembeli)}</td>
-    <td class="num">${berat(j.jumlah_kg)}</td><td class="num">${rp(j.harga_jual_per_kg)}</td><td class="num"><b>${rp(j.total_harga)}</b></td>
+    <tr><td>${j.id}</td><td>${esc(j.tanggal_jual)}</td><td>${esc(labelPanen(j.panen_id))}</td><td class="kirim-sel"><b>${esc(j.pembeli)}</b>${j.pembeli_id ? ' <span class="tag">akun</span>' : ""}${j.kota_tujuan ? `<br><small>📍 ${esc(j.alamat_kirim || "")}, ${esc(j.kota_tujuan)}${j.provinsi_tujuan ? ", " + esc(judulProv(j.provinsi_tujuan)) : ""}</small>${j.no_hp_penerima ? `<br><small>📞 ${esc(j.no_hp_penerima)}</small>` : ""}<br><small>🚚 ${esc(j.moda_kirim || "")} · ± ${Math.ceil(j.estimasi_hari || 1)} hari</small>` : ""}</td><td>${esc(j.jenis_pembeli)}${j.metode_bayar ? `<br><small>${esc(j.metode_bayar)}</small>` : ""}</td>
+    <td class="num">${berat(j.jumlah_kg)}</td><td class="num">${rp(j.harga_jual_per_kg)}</td><td class="num"><b>${rp(j.total_bayar ?? j.total_harga)}</b>${j.ongkir ? `<br><small>ongkir ${rp(j.ongkir)}</small>` : ""}</td>
     <td><span class="badge ${esc(j.status_bayar.split(" ")[0])}">${esc(j.status_bayar)}</span></td><td>${badgePesanan(j.status_pesanan)}${jejak(j.status_pesanan)}</td>
-    <td>${j.status_bayar === "Menunggu Konfirmasi" && j.status_pesanan !== "Dibatalkan" ? `<button class="btn sm primary" data-lunas="${j.id}" title="Konfirmasi pembayaran diterima">Lunaskan</button>` : ""}${LANJUT_PENJUAL[j.status_pesanan] ? `<button class="btn sm primary" data-status="${LANJUT_PENJUAL[j.status_pesanan][0]}" data-id="${j.id}">${LANJUT_PENJUAL[j.status_pesanan][1]}</button>` : ""}${["Menunggu Bayar", "Dibayar"].includes(j.status_pesanan) && j.pembeli_id ? `<button class="btn sm danger" data-batal="${j.id}">Batalkan</button>` : ""}${aksi("penjualan", j.id)}</td></tr>`).join("")
+    <td>${j.status_bayar === "Menunggu Konfirmasi" && j.status_pesanan !== "Dibatalkan" ? `<button class="btn sm primary" data-lunas="${j.id}" title="Konfirmasi pembayaran diterima">Lunaskan</button>` : ""}${LANJUT_PENJUAL[j.status_pesanan] ? `<button class="btn sm primary" data-status="${LANJUT_PENJUAL[j.status_pesanan][0]}" data-id="${j.id}">${LANJUT_PENJUAL[j.status_pesanan][1]}</button>` : ""}${["Menunggu Bayar", "Dibayar"].includes(j.status_pesanan) && j.pembeli_id ? `<button class="btn sm danger" data-batal="${j.id}">Batalkan</button>` : ""}${j.jalur ? `<button class="btn sm" data-lacak="${j.id}">Rute</button>` : ""}${aksi("penjualan", j.id)}</td></tr>`).join("")
     : `<tr><td colspan="11" class="empty">Belum ada data penjualan</td></tr>`;
   $("#form-jual").panen_id.innerHTML = panenList.map((p) => `<option value="${p.id}">${esc(labelPanen(p.id))}</option>`).join("");
 }
@@ -408,7 +408,7 @@ function renderPengguna() {
   const fr = $("#filter-role").value;
   const rows = fr ? userList.filter((u) => u.role === fr) : userList;
   $("#tbl-user").innerHTML = rows.map((u) => `
-    <tr><td>${u.id}</td><td><b>${esc(u.nama)}</b></td><td>${esc(u.username)}</td><td><span class="role ${u.role}">${LABEL_ROLE[u.role]}</span></td>
+    <tr><td>${u.id}</td><td><b>${esc(u.nama)}</b></td><td>${esc(u.username)}${u.email && u.email !== u.username ? `<br><small>${esc(u.email)}</small>` : ""}</td><td><span class="role ${u.role}">${LABEL_ROLE[u.role]}</span></td>
     <td>${esc(u.created_at)}</td><td>${u.id === sesi.user.id ? '<span class="tag">Anda</span>' : aksi("pengguna", u.id)}</td></tr>`).join("");
 }
 function bukaUser(u) {
@@ -418,7 +418,7 @@ function bukaUser(u) {
   $("#pw-hint").textContent = u ? "(kosongkan jika tidak diganti)" : "";
   f.password.required = !u;
   f.id.value = u?.id || "";
-  if (u) ["nama", "username", "role"].forEach((k) => (f[k].value = u[k]));
+  if (u) ["nama", "username", "role", "email"].forEach((k) => (f[k].value = u[k] || ""));
   $("#dlg-user").showModal();
 }
 $("#form-user").addEventListener("submit", async (e) => {
@@ -426,6 +426,7 @@ $("#form-user").addEventListener("submit", async (e) => {
   const body = Object.fromEntries(new FormData(e.target));
   const id = body.id; delete body.id;
   if (!body.password) delete body.password;
+  if (!body.email) delete body.email;
   await simpan(id ? "PUT" : "POST", "/api/auth/users" + (id ? "/" + id : ""), body, "#dlg-user");
 });
 
