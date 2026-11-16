@@ -186,3 +186,33 @@ i[class^="logo-"]{display:inline-grid;place-items:center;width:30px;height:30px;
 /* ---- Pesanan masuk (penjual): alamat kirim */
 .kirim-sel{white-space:normal;min-width:220px;max-width:300px}
 .kirim-sel small,td .num small,td small{color:var(--muted);font-size:.76rem}
+
+/* ---- Keranjang */
+#keranjang-btn{position:relative;flex:none}
+.ck-tombol{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+.kr-daftar{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-height:46vh;overflow-y:auto}
+.kr-daftar li{display:grid;grid-template-columns:64px 1fr 110px 130px 30px;gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:#fff}
+.kr-daftar li.kosong{display:block;text-align:center;color:var(--muted);padding:24px}
+.kr-foto{width:64px;height:64px;border-radius:10px;overflow:hidden;background:#f4efe1}
+.kr-foto img,.kr-foto .foto-kosong{width:100%;height:100%;object-fit:cover}
+.kr-foto .foto-kosong span{font-size:1.8rem}
+.kr-info{display:grid;gap:2px;font-size:.88rem}.kr-info small,.kr-harga small{color:var(--muted);font-size:.76rem}
+.kr-jml{display:flex!important;align-items:center;gap:6px;font-size:.82rem}
+.kr-jml input{padding:8px;text-align:right}
+.kr-harga{display:grid;text-align:right}.kr-harga b{color:var(--green)}
+.kr-hapus{border:0;background:var(--red-2);color:var(--red);border-radius:50%;width:28px;height:28px;font-size:1.1rem;cursor:pointer}
+.kr-bawah{display:grid;gap:12px}
+/* ---- Halaman toko */
+.tk-link{color:inherit;text-decoration:underline dotted;text-underline-offset:2px}
+.tk-link:hover{color:var(--green)}
+.ck-toko{flex-wrap:wrap}.tk-masuk{margin-left:auto}
+.tk-kepala{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;background:linear-gradient(120deg,#1f5a34,#2c6e3f 60%,#b8893a 140%);color:#fff;border-radius:20px;padding:20px 22px}
+.tk-avatar{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:2.2rem}
+.tk-judul h3{margin:0;font:700 1.6rem var(--display)}
+.tk-judul p{margin:4px 0 0;font-size:.88rem;opacity:.92}.tk-judul .mp-cek{color:#c8f0b8}
+.tk-desk{font-style:italic}
+.tk-angka{display:grid;grid-template-columns:repeat(2,auto);gap:6px 18px;margin:0;text-align:right}
+.tk-angka dt{font-size:.7rem;opacity:.8;text-transform:uppercase;letter-spacing:.06em}.tk-angka dd{margin:0;font-weight:700}
+.tk-kontak{grid-column:1/-1;margin:0;font-size:.85rem;opacity:.9}
+.tk-sub{margin:6px 0 0;font:700 1.15rem var(--display)}
+@media (max-width:860px){.kr-daftar li{grid-template-columns:56px 1fr 30px}.kr-jml,.kr-harga{grid-column:2/3}.tk-kepala{grid-template-columns:auto 1fr}.tk-angka{grid-column:1/-1;text-align:left}}

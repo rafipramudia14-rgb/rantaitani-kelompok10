@@ -58,6 +58,7 @@
     <span class="brand-text">TaniMart<small>Pasar Hasil Tani</small></span>
   </div>
   <nav class="tabs" id="tabs"></nav>
+  <button class="notif-btn" id="keranjang-btn" type="button" aria-label="Keranjang" hidden>🛒<span id="keranjang-jml" hidden></span></button>
   <div class="notif">
     <button class="notif-btn" id="notif-btn" type="button" aria-label="Notifikasi">🔔<span id="notif-jml" hidden></span></button>
     <div class="notif-panel" id="notif-panel" hidden><h4>Notifikasi</h4><ul id="notif-daftar"></ul></div>
@@ -387,10 +388,41 @@
           <label><input type="radio" name="metode_bayar" value="Transfer Bank"><span><i class="logo-transfer"></i>Transfer Bank</span></label>
         </fieldset>
         <div class="ck-ringkas"><div><span>Subtotal</span><b id="ck-sub">-</b></div><div><span>Ongkir</span><b id="ck-ongkir">-</b></div><div class="tot"><span>Total</span><b id="ck-total">-</b></div></div>
-        <button class="btn primary block besar">Buat pesanan</button>
+        <div class="ck-tombol"><button type="button" class="btn besar" id="ck-tambah">+ Keranjang</button><button class="btn primary besar">Beli sekarang</button></div>
       </div>
     </div>
   </form>
+</dialog>
+
+<dialog id="dlg-keranjang" class="dlg-lebar">
+  <form id="form-keranjang" class="isi">
+    <div class="bayar-atas"><h3 style="margin:0;font:700 1.45rem var(--display)">🛒 Keranjang</h3><button type="button" class="btn sm" data-close>Tutup</button></div>
+    <ul class="kr-daftar" id="kr-daftar"></ul>
+    <div class="kr-bawah">
+      <fieldset class="ck-alamat"><legend>Kirim ke</legend>
+        <div class="row"><select name="provinsi_tujuan" required aria-label="Provinsi"></select><select name="kota_tujuan_id" required aria-label="Kab/kota"></select></div>
+        <div class="row"><input name="alamat_kirim" required maxlength="200" placeholder="Alamat lengkap"><input name="no_hp_penerima" maxlength="20" placeholder="No. HP penerima"></div>
+      </fieldset>
+      <fieldset class="ck-metode"><legend>Metode pembayaran <span class="sim">SIMULASI</span></legend>
+        <label><input type="radio" name="metode_bayar" value="QRIS" checked><span><i class="logo-qris"></i>QRIS</span></label>
+        <label><input type="radio" name="metode_bayar" value="GoPay"><span><i class="logo-gopay"></i>GoPay</span></label>
+        <label><input type="radio" name="metode_bayar" value="DANA"><span><i class="logo-dana"></i>DANA</span></label>
+        <label><input type="radio" name="metode_bayar" value="Transfer Bank"><span><i class="logo-transfer"></i>Transfer Bank</span></label>
+      </fieldset>
+      <div class="ck-ringkas"><div><span id="kr-jumlah">-</span><span></span></div><div><span>Subtotal</span><b id="kr-sub">-</b></div><div><span>Total ongkir</span><b id="kr-ongkir">-</b></div><div class="tot"><span>Total</span><b id="kr-total">-</b></div></div>
+      <p class="hint">Setiap produk menjadi pesanan sendiri (ongkir dihitung per toko & produk), lalu dibayar di Pesanan Saya.</p>
+      <button class="btn primary block besar" id="kr-checkout">Checkout semua</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-toko2" class="dlg-lebar">
+  <div class="isi">
+    <div class="bayar-atas"><span class="eyebrow" style="margin:0">Toko</span><button type="button" class="btn sm" data-close>Tutup</button></div>
+    <div class="tk-kepala" id="tk-kepala"></div>
+    <h4 class="tk-sub">Semua produk</h4>
+    <div class="mp-grid" id="tk-produk"></div>
+  </div>
 </dialog>
 
 <dialog id="dlg-pembayaran">
@@ -527,5 +559,6 @@
 <script src="../estimasi.js"></script>
 <script src="../app.js"></script>
 <script src="../belanja.js"></script>
+<script src="../keranjang.js"></script>
 </body>
 </html>

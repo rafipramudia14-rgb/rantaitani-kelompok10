@@ -565,7 +565,7 @@ async function renderPeta() {
     <small>${esc(t.kota)}, ${esc(judulProv(t.provinsi))} · ${esc(t.komoditas_utama)} · ${berat(t.hasil_per_panen_kg)}/panen</small><br>
     <small>Kontak: ${esc(t.kontak)}</small></div>
     <div class="jarak">${t.jarak === null ? "" : t.jarak === 0 ? "Satu provinsi" : "± " + t.jarak.toLocaleString("id-ID") + " km"}
-    <button class="btn sm" data-lihat-toko="${esc(t.nama_toko)}">Lihat produk</button><button class="btn sm primary" data-estimasi="${t.id}">Estimasi kirim</button></div></li>`).join("")
+    <button class="btn sm" data-buka-toko="${t.id}">Kunjungi toko</button><button class="btn sm primary" data-estimasi="${t.id}">Estimasi kirim</button></div></li>`).join("")
     || `<li class="empty">Belum ada toko terverifikasi</li>`;
 }
 $("#lokasi-saya").addEventListener("change", renderPeta);
@@ -704,6 +704,7 @@ async function refresh() {
   } catch (e) { if (sesi) toast(e.message, true); }
   cekStatus();
   muatNotif();
+  tandaiKeranjang();
 }
 
 // ---------------- Chatbot asisten (layanan-bantuan)

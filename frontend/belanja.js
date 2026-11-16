@@ -35,7 +35,7 @@ function kartuProduk(p) {
       <p class="mp-harga">${rp(p.harga_per_kg)}<small>/kg</small></p>
       ${p.promo_aktif ? `<p class="mp-coret">${rp(p.harga_normal)}</p>` : ""}
       <p class="mp-lokasi">📍 ${esc(p.kota || "-")}</p>
-      <p class="mp-meta"><span class="mp-cek">✓</span> ${esc(p.toko)} · ${p.terjual_kg ? "terjual " + berat(p.terjual_kg) : "baru"}</p>
+      <p class="mp-meta"><span class="mp-cek">✓</span> <a href="#" class="tk-link" data-buka-toko="${p.toko_id}">${esc(p.toko)}</a> · ${p.terjual_kg ? "terjual " + berat(p.terjual_kg) : "baru"}</p>
     </div></article>`;
 }
 function renderBeranda() {
@@ -71,7 +71,7 @@ async function bukaProduk(pid) {
   $("#ck-harga").innerHTML = `${rp(p.harga_per_kg)}<small>/kg</small>${p.promo_aktif ? ` <s>${rp(p.harga_normal)}</s> <span class="mp-diskon dalam">-${p.diskon_persen}%</span>` : ""}`;
   $("#ck-desk").textContent = p.deskripsi || `${p.komoditas} kualitas ${p.kualitas}, dipanen ${p.tanggal_panen}.`;
   $("#ck-info").innerHTML = `<span>Stok <b>${berat(p.sisa_kg)}</b></span><span>Kualitas <b>${esc(p.kualitas)}</b></span><span>Dipanen <b>${esc(p.tanggal_panen)}</b></span>`;
-  $("#ck-toko").innerHTML = `<div class="ck-toko-ikon">${ikonOf(p.komoditas)}</div><div><b>${esc(p.toko)}</b> <span class="mp-cek">✓ Terverifikasi</span><br><small>📍 ${esc(p.kota)}, ${esc(judulP(p.provinsi))}</small></div>`;
+  $("#ck-toko").innerHTML = `<div class="ck-toko-ikon">${ikonOf(p.komoditas)}</div><div><b>${esc(p.toko)}</b> <span class="mp-cek">✓ Terverifikasi</span><br><small>📍 ${esc(p.kota)}, ${esc(judulP(p.provinsi))}</small></div><button type="button" class="btn sm tk-masuk" data-buka-toko="${p.toko_id}">Kunjungi toko</button>`;
   f.alamat_kirim.value = B.profil.alamat || "";
   f.no_hp_penerima.value = B.profil.no_hp || "";
   await pasangPilihKota(f.provinsi_tujuan, f.kota_tujuan_id, B.profil.provinsi, B.profil.kota_id);
