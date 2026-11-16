@@ -1,0 +1,17 @@
+# Rahasia - jangan diunggah (pakai .env.example)
+.env
+
+# Dependensi & cache
+**/node_modules/
+__pycache__/
+*.pyc
+
+# Log & file sementara
+*.log
+*.tmp
+~$*
+
+# Dokumen tugas (dikumpulkan terpisah) & bahan dokumentasi mentah
+laporan/
+presentasi/
+dokumentasi/

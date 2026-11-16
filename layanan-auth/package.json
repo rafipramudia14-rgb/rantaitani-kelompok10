@@ -1,0 +1,13 @@
+{
+  "name": "layanan-auth",
+  "version": "1.0.0",
+  "description": "Microservice login & peran pengguna - RantaiTani",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "bcryptjs": "2.4.3",
+    "express": "5.1.0",
+    "jsonwebtoken": "9.0.2",
+    "mysql2": "3.11.0"
+  }
+}

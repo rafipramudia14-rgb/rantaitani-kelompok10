@@ -1,0 +1,168 @@
+:root{
+  --bg:#f5f3ec; --surface:#fff; --ink:#1f2a1c; --muted:#5f6b58; --line:#e2dfd3;
+  --green:#2f6b3a; --green-2:#e3efe0; --amber:#b7791f; --amber-2:#fbf0dc; --red:#b23a2e; --red-2:#f8e3e0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink)}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 24px;background:var(--green);color:#fff}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{font-size:32px}
+.brand h1{margin:0;font-size:22px}
+.brand p{margin:0;font-size:13px;opacity:.85}
+.status{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);padding:5px 10px;border-radius:99px;font-size:12.5px}
+.pill i{width:8px;height:8px;border-radius:50%;background:#bbb}
+.pill.up i{background:#7ee08a}.pill.down i{background:#ff7b6b}
+.tabs{display:flex;gap:4px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tab{border:0;background:none;padding:14px 14px;font:inherit;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.tab.active{color:var(--green);border-color:var(--green);font-weight:600}
+main{max-width:1200px;margin:0 auto;padding:24px 16px}
+.panel{display:none}.panel.active{display:block}
+h2{font-size:16px;margin:28px 0 10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card span{display:block;font-size:13px;color:var(--muted)}
+.card b{display:block;font-size:24px;margin-top:6px;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.toolbar{display:flex;gap:10px;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap}
+.toolbar input,.toolbar select{flex:1;min-width:200px;max-width:380px}
+input,select{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);width:100%}
+.btn{font:inherit;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink)}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.btn.sm{padding:4px 9px;font-size:13px}
+.btn.danger{color:var(--red);border-color:#ecc6c0}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12.5px;color:var(--muted);font-weight:600;background:#faf9f4}
+tr:last-child td{border-bottom:0}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+td .btn+.btn{margin-left:6px}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;background:var(--green-2);color:var(--green)}
+.badge.Persiapan{background:#eee;color:#555}.badge.Siap{background:var(--amber-2);color:var(--amber)}.badge.Bera{background:var(--red-2);color:var(--red)}
+.badge.Lunas{background:var(--green-2);color:var(--green)}.badge.Belum{background:var(--amber-2);color:var(--amber)}
+.hint{margin:-4px 0 0;font-size:13px;color:var(--green)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+dialog{border:0;border-radius:12px;padding:0;width:min(520px,calc(100% - 32px))}
+dialog::backdrop{background:rgba(20,30,15,.45)}
+dialog form{padding:22px;display:grid;gap:12px}
+dialog h3{margin:0 0 4px}
+label{display:grid;gap:5px;font-size:13px;color:var(--muted)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;transition:.25s;font-size:14px;max-width:calc(100% - 32px)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.error{background:var(--red)}
+@media (max-width:560px){.row{grid-template-columns:1fr}.topbar{padding:14px 16px}.tabs{padding:0 8px}}
+
+/* ---- Login & peran */
+[hidden]{display:none !important}
+.btn.block{width:100%}
+.btn.ghost{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.3);color:#fff}
+.topbar .right{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.user{display:flex;gap:8px;align-items:center;font-size:14px}
+.role{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;background:#eee;color:#444}
+.role.admin{background:#e7e1f7;color:#5a3e9e}.role.penjual{background:var(--green-2);color:var(--green)}.role.pembeli{background:#dfeaf6;color:#2b5d8f}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:5px;background:#eee;color:var(--muted);margin-left:4px}
+.produk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.produk{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:10px;align-content:start}
+.produk-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.produk h3{margin:0;font-size:18px}
+.harga{margin:0;font-size:22px;font-weight:700;color:var(--green)}.harga small{font-size:13px;color:var(--muted);font-weight:400}
+.produk dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:0;font-size:13.5px}
+.produk dt{color:var(--muted)}.produk dd{margin:0}
+.total{margin:0;font-size:15px}
+
+
+/* ---- Login: latar video sinematik + kartu kaca (dari desain login video proyek sebelumnya) */
+.login-screen{position:fixed;inset:0;z-index:20;font-family:Poppins,system-ui,sans-serif;color:#fff;background:#05080a;overflow-y:auto}
+.layar{position:fixed;inset:0;overflow:hidden}
+.layar video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:zoom 8s ease-out both}
+@keyframes zoom{from{transform:scale(1.06)}}
+.layar::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,.45) 100%),linear-gradient(transparent 60%,rgba(0,0,0,.35));pointer-events:none}
+.merek{position:fixed;z-index:3;top:20px;left:26px;display:flex;align-items:center;gap:10px;font-weight:600;font-size:1.15rem;text-shadow:0 2px 10px rgba(0,0,0,.45)}
+.merek img{width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+.merek small{display:block;font-weight:400;font-size:.62rem;letter-spacing:.28em;opacity:.85}
+.kartu{position:relative;z-index:2;width:min(380px,calc(100vw - 32px));margin:max(110px,calc(50vh - 260px)) auto 40px;padding:90px 32px 26px;border-radius:16px;border:1.5px solid rgba(255,255,255,.55);background:rgba(10,22,30,.42);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);box-shadow:0 30px 80px -30px rgba(0,0,0,.7);animation:masuk 1s cubic-bezier(.16,1,.3,1) both}
+@keyframes masuk{from{opacity:0;transform:translateY(40px) scale(.96);filter:blur(8px)}}
+.kartu-tab{position:absolute;top:-1.5px;left:50%;transform:translateX(-50%);min-width:124px;height:62px;padding:0 26px;background:#d8d8d4;color:#1b1f22;border-radius:0 0 22px 22px;display:grid;place-items:center;font-size:1.5rem;font-weight:500}
+.kartu-tab span{display:block;transition:transform .45s cubic-bezier(.7,0,.2,1),opacity .3s}
+.kartu-tab::before,.kartu-tab::after{content:"";position:absolute;top:0;width:22px;height:22px}
+.kartu-tab::before{left:-22px;border-top-right-radius:22px;box-shadow:8px -8px 0 6px #d8d8d4}
+.kartu-tab::after{right:-22px;border-top-left-radius:22px;box-shadow:-8px -8px 0 6px #d8d8d4}
+.kartu form{display:block}
+.isian{position:relative;margin-bottom:20px}
+.isian input{width:100%;height:50px;padding:0 64px 0 18px;border-radius:999px;border:1.5px solid rgba(255,255,255,.55);background:transparent;color:#fff;font:500 .95rem Poppins,sans-serif;outline:none;transition:border-color .25s,background .25s}
+.isian input:focus{border-color:#fff;background:rgba(255,255,255,.08)}
+.isian input:-webkit-autofill{-webkit-text-fill-color:#fff;transition:background-color 9999s}
+.isian label{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:.95rem;color:#fff;pointer-events:none;transition:.25s cubic-bezier(.16,1,.3,1);padding:0 6px;margin-left:-6px;border-radius:6px;display:block}
+.isian input:focus+label,.isian input:not(:placeholder-shown)+label{top:0;font-size:.74rem;background:#1d2d34}
+.isian .ikon{position:absolute;right:18px;top:50%;transform:translateY(-50%);display:flex;gap:8px}
+.isian svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.isian .lihat{all:unset;cursor:pointer;display:flex;opacity:.75}
+.peran-pilih{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-4px 0 20px}
+.peran-pilih label{display:block;cursor:pointer;color:#fff}
+.peran-pilih input{position:absolute;opacity:0}
+.peran-pilih span{display:block;text-align:center;padding:9px 6px;border-radius:999px;border:1.5px solid rgba(255,255,255,.45);font-size:.85rem;transition:.2s}
+.peran-pilih input:checked+span{background:#ececea;color:#1b1f22;border-color:#ececea;font-weight:600}
+.peran-pilih input:focus-visible+span{outline:2px solid #fff;outline-offset:2px}
+.tombol{width:100%;height:46px;border:0;border-radius:999px;background:#ececea;color:#1b1f22;font:600 1rem Poppins,sans-serif;cursor:pointer;transition:transform .2s,background .2s,box-shadow .2s}
+.tombol:hover{background:#fff;transform:translateY(-1px);box-shadow:0 10px 24px -10px rgba(255,255,255,.6)}
+.bawah{text-align:center;font-size:.88rem;margin:20px 0 0}
+.bawah a{color:#fff;font-weight:600;text-decoration:none}.bawah a:hover{text-decoration:underline}
+.demo{margin-top:16px;font-size:.78rem;color:rgba(255,255,255,.85)}
+.demo summary{cursor:pointer;text-align:center}
+.demo table{margin:8px auto 0;font-size:.78rem}.demo td{padding:3px 6px;border:0;white-space:nowrap}
+.demo code{background:rgba(255,255,255,.14);padding:1px 5px;border-radius:4px;color:#fff}
+.logo-img{width:40px;height:40px;object-fit:contain;background:#fff;border-radius:10px;padding:3px}
+@media (prefers-reduced-motion:reduce){.layar video{animation:none}.kartu{animation:none}}
+
+/* sembunyikan tombol lihat-password bawaan Edge (sudah ada tombol sendiri) */
+.isian input::-ms-reveal,.isian input::-ms-clear{display:none}
+
+/* ---- Pembayaran QRIS (simulasi) */
+.badge.Menunggu{background:#dfeaf6;color:#2b5d8f}
+td .btn.primary.sm{margin-right:6px}
+#dlg-bayar{width:min(400px,calc(100% - 32px))}
+.bayar{padding:20px 22px;display:grid;gap:10px;text-align:center}
+.bayar-atas{display:flex;justify-content:space-between;align-items:center}
+.bayar-atas b{font-size:22px;letter-spacing:.06em;color:var(--ink)}
+.sim{margin-left:8px;font-size:11px;font-weight:700;letter-spacing:.08em;background:var(--amber-2);color:var(--amber);padding:3px 8px;border-radius:99px;vertical-align:middle}
+.merchant{margin:0;font-weight:600;color:var(--muted);font-size:14px}
+.qr{width:230px;height:230px;margin:0 auto;padding:10px;background:#fff;border:1px solid var(--line);border-radius:14px}
+.qr svg{width:100%;height:100%}
+.bayar-total{margin:0;font-size:28px;font-weight:700;color:var(--green)}
+.bayar-kode{margin:0;font-size:13px;color:var(--muted)}
+.bayar-langkah{margin:4px 0 0;padding-left:20px;text-align:left;font-size:13.5px;color:var(--ink);display:grid;gap:3px}
+.peringatan{margin:0;font-size:12px;background:var(--amber-2);color:#7a4f10;border-radius:8px;padding:8px 10px;text-align:left}
+
+/* ---- Chatbot asisten */
+.chat-fab{position:fixed;right:22px;bottom:22px;z-index:40;width:58px;height:58px;border-radius:50%;border:0;background:var(--green);color:#fff;cursor:pointer;box-shadow:0 10px 26px rgba(20,40,15,.35);display:grid;place-items:center;transition:transform .2s}
+.chat-fab:hover{transform:translateY(-2px) scale(1.04)}
+.chat-fab svg,.chat-form svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.chat{position:fixed;right:22px;bottom:22px;z-index:41;width:min(370px,calc(100vw - 32px));height:min(560px,calc(100vh - 44px));background:#fff;border-radius:16px;box-shadow:0 18px 50px rgba(20,40,15,.35);display:flex;flex-direction:column;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink)}
+.chat-atas{display:flex;gap:10px;align-items:center;padding:12px 14px;background:var(--green);color:#fff}
+.chat-atas img{width:34px;height:34px;background:#fff;border-radius:9px;padding:2px}
+.chat-atas div{flex:1;display:grid}.chat-atas small{font-size:11.5px;opacity:.85}
+.chat-x{border:0;background:none;color:#fff;font-size:26px;line-height:1;cursor:pointer;padding:0 4px}
+.chat-isi{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.bubble{max-width:85%;padding:9px 12px;border-radius:14px;font-size:14px;line-height:1.45;white-space:pre-line;word-wrap:break-word}
+.bubble.bot{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+.bubble.saya{align-self:flex-end;background:var(--green);color:#fff;border-bottom-right-radius:4px}
+.bubble.ketik{color:var(--muted);font-style:italic}
+.chat-saran{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 0;background:#fff}
+.chat-saran:empty{display:none}
+.chat-saran button{border:1px solid var(--green);background:#fff;color:var(--green);border-radius:99px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+.chat-saran button:hover{background:var(--green-2)}
+.chat-form{display:flex;gap:8px;padding:10px 12px;background:#fff;border-top:1px solid var(--line)}
+.chat-form input{flex:1;border-radius:99px;padding:9px 14px}
+.chat-form button{width:42px;height:42px;border-radius:50%;border:0;background:var(--green);color:#fff;cursor:pointer;display:grid;place-items:center;flex:none}
+.chat-form button svg{width:20px;height:20px}
+@media (max-width:560px){.chat{right:16px;bottom:16px}.chat-fab{right:16px;bottom:16px}}
+
+/* ---- Input jumlah + satuan */
+.jumlah-satuan{display:flex;gap:6px}
+.jumlah-satuan input{flex:1;min-width:0}
+.jumlah-satuan select{width:auto;flex:none}
+.harga-kecil{margin:-6px 0 0;font-size:12.5px;color:var(--muted)}

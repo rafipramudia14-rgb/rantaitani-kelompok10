@@ -1,0 +1,133 @@
+# RantaiTani - Sistem Rantai Hasil Pertanian (Kelompok 10 - Pertanian)
+# Microservices: gateway (Nginx) + layanan-auth (Express) + layanan-lahan (Flask)
+#                + layanan-panen (Express) + layanan-penjualan (Flask) + layanan-bantuan (Flask, chatbot) + MySQL
+name: rantaitani
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: rantaitani-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql                        # storage persisten
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - tani-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  layanan-auth:
+    build: ./layanan-auth
+    image: rantaitani/layanan-auth:1.0
+    container_name: rantaitani-auth
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_USER: ${AUTH_DB_USER}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD}
+      DB_NAME: db_auth
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - tani-net
+
+  layanan-lahan:
+    build: ./layanan-lahan
+    image: rantaitani/layanan-lahan:1.0
+    container_name: rantaitani-lahan
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_USER: ${LAHAN_DB_USER}
+      DB_PASSWORD: ${LAHAN_DB_PASSWORD}
+      DB_NAME: db_lahan
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - tani-net
+
+  layanan-panen:
+    build: ./layanan-panen
+    image: rantaitani/layanan-panen:1.0
+    container_name: rantaitani-panen
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_USER: ${PANEN_DB_USER}
+      DB_PASSWORD: ${PANEN_DB_PASSWORD}
+      DB_NAME: db_panen
+      LAHAN_SERVICE_URL: http://layanan-lahan:5000     # komunikasi antar-service via DNS Docker
+    depends_on:
+      db:
+        condition: service_healthy
+      layanan-lahan:
+        condition: service_started
+    networks:
+      - tani-net
+
+  layanan-penjualan:
+    build: ./layanan-penjualan
+    image: rantaitani/layanan-penjualan:1.0
+    container_name: rantaitani-penjualan
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_USER: ${PENJUALAN_DB_USER}
+      DB_PASSWORD: ${PENJUALAN_DB_PASSWORD}
+      DB_NAME: db_penjualan
+      PANEN_SERVICE_URL: http://layanan-panen:3000     # cek stok ke layanan-panen
+    depends_on:
+      db:
+        condition: service_healthy
+      layanan-panen:
+        condition: service_started
+    networks:
+      - tani-net
+
+  layanan-bantuan:
+    build: ./layanan-bantuan
+    image: rantaitani/layanan-bantuan:1.0
+    container_name: rantaitani-bantuan
+    restart: unless-stopped
+    environment:
+      PENJUALAN_SERVICE_URL: http://layanan-penjualan:5000   # cek status pembayaran pengguna
+    depends_on:
+      - layanan-penjualan
+    networks:
+      - tani-net
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: rantaitani-gateway
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:8090:80"     # satu-satunya port yang dibuka ke host
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - layanan-auth
+      - layanan-lahan
+      - layanan-panen
+      - layanan-penjualan
+      - layanan-bantuan
+    networks:
+      - tani-net
+
+networks:
+  tani-net:
+    name: tani-net
+    driver: bridge
+
+volumes:
+  mysql-data:
+    name: rantaitani-mysql-data
