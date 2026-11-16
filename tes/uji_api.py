@@ -105,6 +105,29 @@ cek("admin tambah pengguna", k, 201)
 uid = j["data"]["id"]
 cek("non-admin lihat pengguna (403)", req("GET", "/api/auth/users", token=D)[0], 403)
 
+# ---- Fitur marketplace: login email, profil, lupa password, foto, checkout + ongkir, pembayaran, notifikasi
+cek("login pakai email", req("POST", "/api/auth/login", {"username": "rina@tanimart.test", "password": "pembeli123"})[0], 200)
+cek("daftar tanpa email ditolak (400)", req("POST", "/api/auth/register", {"nama": "x", "password": "123456"})[0], 400)
+cek("profil pembeli", req("GET", "/api/auth/profil", token=R)[0], 200)
+cek("endpoint internal diblok gateway (404)", req("POST", "/api/auth/internal/notifikasi", {"user_id": 1, "judul": "x", "isi": "x"})[0], 404)
+k, j = req("POST", "/api/auth/lupa", {"email": "uji_akun_tes@tanimart.test"})
+cek("lupa password email tak terdaftar (404)", k, 404)
+cek("unggah foto bukan gambar ditolak (400)", req("POST", f"/api/panen/{pid}/foto", {"gambar": "data:image/png;base64,SGVsbG8="}, D)[0], 400)
+PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+cek("unggah foto produk", req("POST", f"/api/panen/{pid}/foto", {"gambar": PNG}, D)[0], 200)
+cek("promo lebih mahal ditolak (400)", req("PUT", f"/api/panen/{pid}", {"harga_promo": 999999}, D)[0], 400)
+cek("set promo", req("PUT", f"/api/panen/{pid}", {"harga_promo": 5500, "unggulan": 1}, D)[0], 200)
+k, j = req("POST", "/api/penjualan", {"panen_id": pid, "jumlah_kg": 2, "metode_bayar": "GoPay"}, R)
+cek("checkout dengan ongkir otomatis", k, 201)
+cek("ongkir & harga promo terpakai", 200 if j.get("data", {}).get("ongkir", 0) > 0 and j["data"]["harga_jual_per_kg"] == 5500 else 0, 200)
+oid = j.get("data", {}).get("id")
+cek("pembayaran transfer bank (VA)", req("GET", f"/api/penjualan/{oid}/pembayaran?metode=Transfer%20Bank", token=R)[0], 200)
+cek("metode bayar tidak dikenal (400)", req("POST", "/api/penjualan", {"panen_id": pid, "jumlah_kg": 1, "metode_bayar": "OVO"}, R)[0], 400)
+k, j = req("GET", "/api/auth/notifikasi", token=D)
+cek("penjual dapat notifikasi pesanan", 200 if k == 200 and any("Pesanan baru" in n["judul"] for n in j["data"]["daftar"]) else 0, 200)
+cek("estimasi per kota", req("GET", "/api/info/publik/estimasi?asal=JAWA%20BARAT&tujuan=KALIMANTAN%20TIMUR&ton=0.002&kota_asal=3204&kota_tujuan=6471")[0], 200)
+cek("daftar kota", req("GET", "/api/info/publik/kota?provinsi=BALI")[0], 200)
+
 # ---- Bersihkan data uji
 cek("hapus pengguna uji", req("DELETE", f"/api/auth/users/{uid}", token=A)[0], 200)
 cek("hapus harga uji", req("DELETE", f"/api/info/harga/{hid}", token=A)[0], 200)

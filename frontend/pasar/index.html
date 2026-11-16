@@ -8,6 +8,7 @@
 <link rel="preload" href="../aset/fonts/PlusJakartaSans.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="../aset/fonts/PlayfairDisplay.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../belanja.css">
 </head>
 <body>
 
@@ -19,14 +20,15 @@
   <div class="kartu" id="kartu">
     <div class="kartu-tab"><span id="judul-login">Masuk</span></div>
     <form id="form-login">
-      <div class="isian"><input name="username" placeholder=" " autocomplete="username" required><label>Username</label><span class="ikon"><svg viewBox="0 0 24 24"><path d="M4 20c1.5-4 5-5 8-5s6.5 1 8 5"/><circle cx="12" cy="8" r="4"/></svg></span></div>
+      <div class="isian"><input name="username" placeholder=" " autocomplete="username" required><label>Email atau username</label><span class="ikon"><svg viewBox="0 0 24 24"><path d="M4 20c1.5-4 5-5 8-5s6.5 1 8 5"/><circle cx="12" cy="8" r="4"/></svg></span></div>
       <div class="isian"><input name="password" type="password" placeholder=" " autocomplete="current-password" required><label>Password</label>
         <span class="ikon"><button type="button" class="lihat" aria-label="Tampilkan password"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></div>
+      <p class="lupa"><a href="#" id="lupa-link">Lupa password?</a></p>
       <button class="tombol">Masuk</button>
     </form>
     <form id="form-daftar" hidden>
       <div class="isian"><input name="nama" placeholder=" " autocomplete="name" required><label>Nama lengkap</label><span class="ikon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h6M7 14h4"/></svg></span></div>
-      <div class="isian"><input name="username" placeholder=" " autocomplete="username" required><label>Username</label><span class="ikon"><svg viewBox="0 0 24 24"><path d="M4 20c1.5-4 5-5 8-5s6.5 1 8 5"/><circle cx="12" cy="8" r="4"/></svg></span></div>
+      <div class="isian"><input name="email" type="email" placeholder=" " autocomplete="email" required><label>Email</label><span class="ikon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span></div>
       <div class="isian"><input name="password" type="password" minlength="6" placeholder=" " autocomplete="new-password" required><label>Password (min. 6 karakter)</label>
         <span class="ikon"><button type="button" class="lihat" aria-label="Tampilkan password"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></div>
       <div class="peran-pilih">
@@ -39,9 +41,9 @@
     <details class="demo">
       <summary>Akun contoh untuk demo</summary>
       <table>
-        <tr><td>Admin</td><td><code>admin</code> / <code>admin123</code></td></tr>
-        <tr><td>Penjual</td><td><code>darto</code> · <code>siti</code> · <code>ujang</code> / <code>petani123</code></td></tr>
-        <tr><td>Pembeli</td><td><code>rina</code> / <code>pembeli123</code></td></tr>
+        <tr><td>Admin</td><td><code>admin@tanimart.test</code> / <code>admin123</code></td></tr>
+        <tr><td>Penjual</td><td><code>darto@</code> · <code>siti@</code> · <code>ujang@tanimart.test</code> / <code>petani123</code></td></tr>
+        <tr><td>Pembeli</td><td><code>rina@tanimart.test</code> / <code>pembeli123</code></td></tr>
       </table>
     </details>
   </div>
@@ -56,6 +58,10 @@
     <span class="brand-text">TaniMart<small>Pasar Hasil Tani</small></span>
   </div>
   <nav class="tabs" id="tabs"></nav>
+  <div class="notif">
+    <button class="notif-btn" id="notif-btn" type="button" aria-label="Notifikasi">🔔<span id="notif-jml" hidden></span></button>
+    <div class="notif-panel" id="notif-panel" hidden><h4>Notifikasi</h4><ul id="notif-daftar"></ul></div>
+  </div>
   <div class="user">
     <span class="user-info"><span id="user-nama"></span><span class="role" id="user-role"></span></span>
     <button class="btn sm gelap" id="logout">Keluar</button>
@@ -154,6 +160,44 @@
     </table></div>
   </section>
 
+  <!-- Belanja ala marketplace (pembeli) -->
+  <section id="tab-beranda" class="panel">
+    <div class="mp-cari"><span>🔍</span><input id="mp-cari" type="search" placeholder="Cari cabai, beras, jagung, kota, atau toko…" autocomplete="off"></div>
+    <div class="mp-banner" id="mp-banner"></div>
+    <div class="mp-kategori" id="mp-kategori"></div>
+    <div id="mp-blok-unggulan"><h2>🔥 Promo &amp; unggulan</h2><div class="mp-baris" id="mp-unggulan"></div></div>
+    <h2 id="mp-judul-grid">Semua produk</h2>
+    <div class="mp-grid" id="mp-grid"></div>
+  </section>
+
+  <!-- Pesanan saya (pembeli) -->
+  <section id="tab-pesanan" class="panel">
+    <div class="chips ps-filter" id="ps-filter"></div>
+    <div class="ps-daftar" id="ps-daftar"></div>
+  </section>
+
+  <!-- Akun saya (semua peran) -->
+  <section id="tab-akun" class="panel">
+    <div class="akun-wadah">
+      <aside class="akun-kartu" id="akun-kartu"></aside>
+      <div class="akun-form">
+        <form id="form-profil" class="kartu-form">
+          <h3>Profil &amp; alamat kirim</h3>
+          <div class="row"><label>Nama<input name="nama" required maxlength="100"></label><label>Email<input name="email" type="email" required></label></div>
+          <div class="row"><label>No. HP / WA<input name="no_hp" maxlength="20" placeholder="08xx-xxxx-xxxx"></label><label>Provinsi<select name="provinsi"></select></label></div>
+          <div class="row"><label>Kab/Kota<select name="kota_id"></select></label><label>Alamat lengkap<input name="alamat" maxlength="200" placeholder="Jalan, nomor, kelurahan"></label></div>
+          <div class="actions"><button class="btn primary">Simpan profil</button></div>
+        </form>
+        <form id="form-sandi" class="kartu-form">
+          <h3>Ganti password</h3>
+          <div class="row"><label>Password lama<input name="lama" type="password" required autocomplete="current-password"></label><label>Password baru<input name="baru" type="password" minlength="6" required autocomplete="new-password"></label></div>
+          <div class="row"><label>Ulangi password baru<input name="ulang" type="password" minlength="6" required autocomplete="new-password"></label><span></span></div>
+          <div class="actions"><button class="btn">Ganti password</button></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
   <!-- Toko saya (penjual) -->
   <section id="tab-toko" class="panel">
     <div id="toko-saya"></div>
@@ -244,6 +288,14 @@
       <label>Kualitas<select name="kualitas"><option>A</option><option>B</option><option>C</option></select></label>
     </div>
     <label>Harga per kg (Rp)<input name="harga_per_kg" type="number" step="1" min="0" required></label>
+    <fieldset class="produk-set"><legend>Tampilan di toko</legend>
+      <label>Nama produk<input name="nama_produk" maxlength="100" placeholder="mis. Cabai Merah Keriting Lembang"></label>
+      <label>Deskripsi<textarea name="deskripsi" maxlength="500" rows="2" placeholder="Ceritakan kualitas, cara panen, atau kegunaannya"></textarea></label>
+      <div class="row"><label>Harga promo/kg (opsional)<input name="harga_promo" type="number" step="1" min="1"></label><label>Promo sampai<input name="promo_sampai" type="date"></label></div>
+      <div class="row foto-baris"><label>Foto produk (JPG/PNG, otomatis dikecilkan)<input name="foto" type="file" accept="image/jpeg,image/png,image/webp"></label>
+        <label class="cek"><input type="checkbox" name="unggulan"> Promosikan sebagai produk unggulan</label></div>
+      <div class="foto-pratinjau" id="foto-pratinjau"></div>
+    </fieldset>
     <label>Catatan<input name="catatan"></label>
     <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Simpan</button></div>
   </form>
@@ -290,7 +342,7 @@
     <label>Nama toko<input name="nama_toko" required maxlength="100" placeholder="mis. Tani Makmur Grobogan"></label>
     <div class="row">
       <label>Provinsi lahan<select name="provinsi" required></select></label>
-      <label>Kota / kabupaten<input name="kota" required maxlength="80" placeholder="mis. Kab. Grobogan"></label>
+      <label>Kota / kabupaten<select name="kota_id" required></select></label>
     </div>
     <label>Alamat lahan<input name="alamat" required maxlength="200" placeholder="Desa, kecamatan"></label>
     <div class="row">
@@ -301,13 +353,85 @@
       <label>Luas lahan (ha)<input name="luas_lahan_ha" type="number" step="0.01" min="0.01" required></label>
       <label>Hasil per panen (kg)<input name="hasil_per_panen_kg" type="number" step="1" min="1" required></label>
     </div>
-    <label>Bukti kepemilikan / izin lahan<input name="bukti" required maxlength="200" placeholder="mis. No. sertifikat, SPPT PBB, atau surat keterangan desa"></label>
+    <label>Cerita singkat toko (opsional)<input name="deskripsi" maxlength="300" placeholder="mis. Kebun keluarga sejak 1998, panen tiap 3 bulan"></label>
+    <label>Keterangan lahan (opsional, tanpa KTP)<input name="bukti" maxlength="200" placeholder="mis. lahan milik sendiri / sewa dari desa"></label>
     <div class="row admin-only">
       <label>Status<select name="status"><option>Menunggu</option><option>Terverifikasi</option><option>Ditolak</option></select></label>
       <label>Catatan admin<input name="catatan_admin" maxlength="200"></label>
     </div>
     <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Simpan</button></div>
   </form>
+</dialog>
+
+<dialog id="dlg-produk" class="dlg-lebar">
+  <form id="form-checkout">
+    <button type="button" class="tutup-x" data-close aria-label="Tutup">×</button>
+    <div class="ck-wadah">
+      <div class="ck-kiri"><div class="ck-foto" id="ck-foto"></div><div class="ck-toko" id="ck-toko"></div></div>
+      <div class="ck-kanan">
+        <h3 id="ck-nama"></h3>
+        <p class="ck-harga" id="ck-harga"></p>
+        <div class="ck-info" id="ck-info"></div>
+        <p class="ck-desk" id="ck-desk"></p>
+        <label>Jumlah<span class="jumlah-satuan"><input name="jumlah" type="number" step="any" min="0.001" required><select name="satuan" aria-label="Satuan"><option value="g">gram</option><option value="ons">ons</option><option value="kg" selected>kg</option><option value="kuintal">kuintal</option><option value="ton">ton</option></select></span></label>
+        <fieldset class="ck-alamat"><legend>Kirim ke</legend>
+          <div class="row"><select name="provinsi_tujuan" required aria-label="Provinsi"></select><select name="kota_tujuan_id" required aria-label="Kab/kota"></select></div>
+          <div class="row"><input name="alamat_kirim" required maxlength="200" placeholder="Alamat lengkap"><input name="no_hp_penerima" maxlength="20" placeholder="No. HP penerima"></div>
+          <label class="cek"><input type="checkbox" name="simpan_alamat" checked> Simpan sebagai alamat utama</label>
+          <p class="ck-kirim" id="ck-kirim"></p>
+        </fieldset>
+        <fieldset class="ck-metode"><legend>Metode pembayaran <span class="sim">SIMULASI</span></legend>
+          <label><input type="radio" name="metode_bayar" value="QRIS" checked><span><i class="logo-qris"></i>QRIS</span></label>
+          <label><input type="radio" name="metode_bayar" value="GoPay"><span><i class="logo-gopay"></i>GoPay</span></label>
+          <label><input type="radio" name="metode_bayar" value="DANA"><span><i class="logo-dana"></i>DANA</span></label>
+          <label><input type="radio" name="metode_bayar" value="Transfer Bank"><span><i class="logo-transfer"></i>Transfer Bank</span></label>
+        </fieldset>
+        <div class="ck-ringkas"><div><span>Subtotal</span><b id="ck-sub">-</b></div><div><span>Ongkir</span><b id="ck-ongkir">-</b></div><div class="tot"><span>Total</span><b id="ck-total">-</b></div></div>
+        <button class="btn primary block besar">Buat pesanan</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-pembayaran">
+  <div class="bayar">
+    <div class="bayar-atas"><div><b>Pembayaran</b><span class="sim">SIMULASI</span></div><button type="button" class="btn sm" data-close>Tutup</button></div>
+    <div class="by-metode" id="by-metode"></div>
+    <p class="bayar-total" id="by-total"></p>
+    <p class="bayar-kode">Kode bayar: <b id="by-kode"></b> · berlaku <span id="by-timer">15:00</span></p>
+    <div id="by-isi"></div>
+    <ol class="bayar-langkah" id="by-langkah"></ol>
+    <p class="peringatan">Ini <b>simulasi</b> untuk tugas: tidak terhubung ke GoPay, DANA, bank, atau QRIS sungguhan dan tidak ada uang yang berpindah.</p>
+    <button type="button" class="btn primary block" id="by-sudah">Saya sudah bayar</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-lacak" class="dlg-lebar">
+  <div class="isi">
+    <div class="bayar-atas"><h3 id="lacak-judul" style="margin:0;font:700 1.35rem var(--display)">Lacak pesanan</h3><button type="button" class="btn sm" data-close>Tutup</button></div>
+    <p id="lacak-info" class="lacak-info"></p>
+    <div class="lacak-wadah">
+      <svg id="lacak-peta" role="img" aria-label="Peta jalur pengiriman"></svg>
+      <ol class="lacak-waktu" id="lacak-waktu"></ol>
+    </div>
+    <p class="ket-peta"><span class="kotak" style="background:var(--green)"></span>Asal <span class="kotak" style="background:var(--gold)"></span>Pelabuhan <span class="kotak" style="background:var(--red)"></span>Tujuan · 📦 posisi paket (perkiraan dari status)</p>
+  </div>
+</dialog>
+
+<dialog id="dlg-lupa">
+  <div class="isi lupa-isi">
+    <div class="bayar-atas"><h3 style="margin:0;font:700 1.35rem var(--display)">Lupa password</h3><button type="button" class="btn sm" data-close>Tutup</button></div>
+    <form id="form-lupa" class="kartu-form polos">
+      <label>Email akun<input name="email" type="email" required placeholder="nama@email.com"></label>
+      <button class="btn primary">Kirim kode reset</button>
+    </form>
+    <div class="lupa-kotak" id="lupa-kotak" hidden></div>
+    <form id="form-reset" class="kartu-form polos" hidden>
+      <input type="hidden" name="email">
+      <div class="row"><label>Kode 6 digit<input name="kode" inputmode="numeric" maxlength="6" required></label><label>Password baru<input name="password" type="password" minlength="6" required autocomplete="new-password"></label></div>
+      <button class="btn primary">Simpan password baru</button>
+    </form>
+  </div>
 </dialog>
 
 <dialog id="dlg-estimasi">
@@ -401,5 +525,6 @@
 <div id="toast" role="status"></div>
 <script src="../estimasi.js"></script>
 <script src="../app.js"></script>
+<script src="../belanja.js"></script>
 </body>
 </html>

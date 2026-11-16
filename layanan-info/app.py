@@ -185,14 +185,22 @@ def publik_estimasi():
         ton = float(request.args.get("ton", "1").replace(",", "."))
     except ValueError:
         return err("jumlah ton harus angka", 400)
-    if not 0.001 <= ton <= 10000:
-        return err("jumlah harus antara 0,001 dan 10.000 ton", 400)
-    return ok(rute.estimasi(asal, tujuan, ton))
+    if not 0.000001 <= ton <= 10000:
+        return err("jumlah harus antara 1 gram dan 10.000 ton", 400)
+    ka, kt = request.args.get("kota_asal", type=int), request.args.get("kota_tujuan", type=int)
+    return ok(rute.estimasi(asal, tujuan, ton, ka, kt))
 
 
 @app.get("/api/info/publik/provinsi")
 def publik_provinsi():
-    return ok([{"nama": p, "pulau": rute.PULAU_DARI[p], "pelabuhan": rute.PELABUHAN[p]} for p in rute.PROVINSI])
+    return ok([{"nama": p, "pulau": rute.PULAU_DARI[p], "pelabuhan": rute.PELABUHAN[p][0]} for p in rute.PROVINSI])
+
+
+@app.get("/api/info/publik/kota")
+def publik_kota():
+    """514 kab/kota dengan koordinat & posisi di peta. Filter opsional ?provinsi=JAWA TENGAH"""
+    p = (request.args.get("provinsi") or "").upper()
+    return ok([k for k in rute.KOTA.values() if not p or k["provinsi"] == p])
 
 
 # ---------------------------------------------------------------- CRUD admin

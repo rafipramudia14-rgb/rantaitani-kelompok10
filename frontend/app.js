@@ -31,9 +31,9 @@ let sesi = store.get();
 let lahanList = [], panenList = [], jualList = [], katalogList = [], userList = [], penjualList = [], hargaList = [], tokoList = [], tokoSaya = null;
 
 const MENU = {
-  admin: [["ringkasan", "Ringkasan"], ["lahan", "Data Lahan"], ["panen", "Hasil Panen"], ["penjualan", "Penjualan"], ["toko-admin", "Verifikasi Toko"], ["harga", "Harga Pangan"], ["pengguna", "Pengguna"]],
-  penjual: [["ringkasan", "Ringkasan"], ["toko", "Toko Saya"], ["lahan", "Lahan Saya"], ["panen", "Panen Saya"], ["penjualan", "Penjualan Saya"]],
-  pembeli: [["katalog", "Katalog Hasil Tani"], ["peta", "Peta Penjual"], ["pembelian", "Pembelian Saya"]],
+  admin: [["ringkasan", "Ringkasan"], ["lahan", "Data Lahan"], ["panen", "Hasil Panen"], ["penjualan", "Penjualan"], ["toko-admin", "Verifikasi Toko"], ["harga", "Harga Pangan"], ["pengguna", "Pengguna"], ["akun", "Akun"]],
+  penjual: [["ringkasan", "Ringkasan"], ["toko", "Toko Saya"], ["lahan", "Lahan Saya"], ["panen", "Produk & Panen"], ["penjualan", "Pesanan Masuk"], ["akun", "Akun Saya"]],
+  pembeli: [["beranda", "Belanja"], ["pesanan", "Pesanan Saya"], ["peta", "Peta Penjual"], ["akun", "Akun Saya"]],
 };
 const LABEL_ROLE = { admin: "Admin", penjual: "Penjual", pembeli: "Pembeli" };
 const role = () => sesi?.user.role;
@@ -97,7 +97,7 @@ $("#form-daftar").addEventListener("submit", async (e) => {
     toast(r.message);
     e.target.reset();
     modeLogin(false);
-    $("#form-login").username.value = body.username;
+    $("#form-login").username.value = body.email || body.username;
     setTimeout(() => $("#form-login").password.focus(), 300);
   } catch (err) { toast(err.message, true); }
 });
@@ -138,6 +138,8 @@ function bukaTab(id) {
   document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === "tab-" + id));
   const m = MENU[role()].find(([k]) => k === id);
   if (m) $("#judul-halaman").textContent = m[1];
+  document.body.classList.toggle("mode-belanja", id === "beranda");
+  if (id === "akun") renderAkun().catch((e) => toast(e.message, true));
 }
 $("#tabs").addEventListener("click", (e) => { if (e.target.dataset.tab) bukaTab(e.target.dataset.tab); });
 
@@ -211,7 +213,7 @@ function renderPanen() {
   const fl = $("#filter-lahan").value;
   const rows = fl ? panenList.filter((p) => p.lahan_id == fl) : panenList;
   $("#tbl-panen").innerHTML = rows.length ? rows.map((p) => `
-    <tr><td>${p.id}</td><td>${esc(p.tanggal_panen)}</td><td>${esc(namaLahan(p.lahan_id))}</td><td>${esc(p.komoditas)}</td>
+    <tr><td>${p.id}</td><td>${esc(p.tanggal_panen)}</td><td>${esc(namaLahan(p.lahan_id))}</td><td class="produk-sel">${p.foto ? `<img class="thumb" src="${esc(p.foto)}" alt="">` : `<span class="thumb kosong">${ikonOf(p.komoditas)}</span>`}<span><b>${esc(p.nama_produk || p.komoditas)}</b>${p.promo_aktif ? ` <span class="badge Bera">-${p.diskon_persen}%</span>` : ""}${p.unggulan ? ' <span class="badge Siap">unggulan</span>' : ""}<br><small>${esc(p.komoditas)}</small></span></td>
     <td class="num">${berat(p.jumlah_kg)}</td><td class="num">${berat(sisaKg(p))}</td><td>${esc(p.kualitas)}</td><td class="num">${rp(p.harga_per_kg)}</td>
     <td class="num"><b>${rp(p.total_nilai)}</b></td><td>${esc(p.catatan || "-")}</td><td>${aksi("panen", p.id)}</td></tr>`).join("")
     : `<tr><td colspan="11" class="empty">Belum ada data panen</td></tr>`;
@@ -223,8 +225,9 @@ function bukaPanen(p) {
   f.reset();
   $("#judul-panen").textContent = p ? "Ubah Data Panen" : "Catat Panen";
   f.id.value = p?.id || "";
-  if (p) { ["lahan_id", "tanggal_panen", "komoditas", "kualitas", "harga_per_kg", "catatan"].forEach((k) => (f[k].value = p[k] ?? "")); isiJumlah(f, p.jumlah_kg); }
+  if (p) { ["lahan_id", "tanggal_panen", "komoditas", "kualitas", "harga_per_kg", "catatan", "nama_produk", "deskripsi", "harga_promo", "promo_sampai"].forEach((k) => (f[k].value = p[k] ?? "")); isiJumlah(f, p.jumlah_kg); f.unggulan.checked = !!p.unggulan; }
   else { f.tanggal_panen.value = hariIni(); f.komoditas.value = lahanList[0].komoditas; }
+  $("#foto-pratinjau").innerHTML = p?.foto ? `<img src="${esc(p.foto)}" alt=""> <button type="button" class="btn sm danger" data-hapus-foto="${p.id}">Hapus foto</button>` : "";
   $("#dlg-panen").showModal();
 }
 $("#form-panen").lahan_id.addEventListener("change", (e) => {
@@ -237,7 +240,40 @@ $("#form-panen").addEventListener("submit", async (e) => {
   const id = body.id; delete body.id;
   body.jumlah_kg = keKg(e.target); delete body.jumlah; delete body.satuan;
   ["lahan_id", "harga_per_kg"].forEach((k) => (body[k] = Number(body[k])));
-  await simpan(id ? "PUT" : "POST", "/api/panen" + (id ? "/" + id : ""), body, "#dlg-panen");
+  body.unggulan = e.target.unggulan.checked ? 1 : 0;
+  const file = e.target.foto.files[0]; delete body.foto;
+  try {
+    const r = await api(id ? "PUT" : "POST", "/api/panen" + (id ? "/" + id : ""), body);
+    if (file) await api("POST", `/api/panen/${r.data.id}/foto`, { gambar: await kecilkanFoto(file) });
+    $("#dlg-panen").close(); toast(file ? "Produk & foto tersimpan" : r.message); refresh();
+  } catch (err) { toast(err.message, true); }
+});
+
+// Foto dikecilkan di browser (maks 1000 px, JPEG) supaya unggahan ringan
+function kecilkanFoto(file) {
+  return new Promise((ok, gagal) => {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return gagal(new Error("Foto harus JPG, PNG, atau WebP"));
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, 1000 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      ok(c.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = () => gagal(new Error("File gambar tidak bisa dibaca"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+$("#form-panen").foto.addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  if (f) $("#foto-pratinjau").innerHTML = `<img src="${URL.createObjectURL(f)}" alt=""> <small>akan diunggah saat disimpan</small>`;
+});
+document.addEventListener("click", async (e) => {
+  const id = e.target.dataset?.hapusFoto;
+  if (!id || !confirm("Hapus foto produk ini?")) return;
+  try { toast((await api("DELETE", `/api/panen/${id}/foto`)).message); $("#foto-pratinjau").innerHTML = ""; refresh(); } catch (err) { toast(err.message, true); }
 });
 
 // ---------------- Penjualan (admin & penjual)
@@ -485,7 +521,8 @@ async function bukaToko(t) {
   f.reset();
   $("#judul-toko").textContent = t ? "Ubah Data Toko" : "Buka Toko";
   f.id.value = t?.id || "";
-  if (t) ["nama_toko", "provinsi", "kota", "alamat", "komoditas_utama", "luas_lahan_ha", "hasil_per_panen_kg", "kontak", "bukti", "status", "catatan_admin"].forEach((k) => (f[k].value = t[k] ?? ""));
+  if (t) ["nama_toko", "alamat", "komoditas_utama", "luas_lahan_ha", "hasil_per_panen_kg", "kontak", "bukti", "deskripsi", "status", "catatan_admin"].forEach((k) => (f[k].value = t[k] ?? ""));
+  await pasangPilihKota(f.provinsi, f.kota_id, t?.provinsi, t?.kota_id);
   $("#ket-verif-ulang").hidden = !t || role() === "admin";
   $("#dlg-toko").showModal();
 }
@@ -494,6 +531,7 @@ $("#form-toko").addEventListener("submit", async (e) => {
   const body = Object.fromEntries(new FormData(e.target));
   const id = body.id; delete body.id;
   if (role() !== "admin") { delete body.status; delete body.catatan_admin; }
+  body.kota_id = Number(body.kota_id); body.kota = namaKota(body.kota_id);
   await simpan(id ? "PUT" : "POST", "/api/auth/toko" + (id ? "/" + id : ""), body, "#dlg-toko");
 });
 async function setStatusToko(id, status) {
@@ -643,6 +681,8 @@ async function refresh() {
     if (role() === "pembeli") {
       [katalogList, tokoList] = (await Promise.all([api("GET", "/api/penjualan/katalog"), api("GET", "/api/auth/toko")])).map((x) => x.data);
       renderKatalog();
+      renderBeranda();
+      renderPesanan();
       renderPeta();
       renderPembelian();
     } else {
@@ -662,6 +702,7 @@ async function refresh() {
     }
   } catch (e) { if (sesi) toast(e.message, true); }
   cekStatus();
+  muatNotif();
 }
 
 // ---------------- Chatbot asisten (layanan-bantuan)

@@ -30,6 +30,8 @@ DB = dict(
 )
 PANEN_URL = os.getenv("PANEN_SERVICE_URL", "http://layanan-panen:3000")
 AUTH_URL = os.getenv("AUTH_SERVICE_URL", "http://layanan-auth:3000")
+INFO_URL = os.getenv("INFO_SERVICE_URL", "http://layanan-info:5000")
+METODE = ("QRIS", "GoPay", "DANA", "Transfer Bank")
 FIELDS = ["panen_id", "pembeli", "jenis_pembeli", "jumlah_kg", "harga_jual_per_kg", "tanggal_jual", "status_bayar"]
 REQUIRED = ["panen_id", "pembeli", "jumlah_kg", "harga_jual_per_kg", "tanggal_jual"]
 SVC = "layanan-penjualan"
@@ -63,7 +65,30 @@ def clean(row):
         out[k] = v
     if "jumlah_kg" in out and "harga_jual_per_kg" in out:
         out["total_harga"] = round(out["jumlah_kg"] * out["harga_jual_per_kg"], 2)
+        out["total_bayar"] = round(out["total_harga"] + float(out.get("ongkir") or 0), 2)
+    if out.get("jalur"):
+        try:
+            out["jalur"] = json.loads(out["jalur"])
+        except ValueError:
+            out["jalur"] = None
     return out
+
+
+def ambil_json(url, data=None):
+    """GET/POST JSON ke layanan lain di jaringan Docker. Return data atau None."""
+    try:
+        req = urllib.request.Request(url, data=json.dumps(data).encode() if data is not None else None,
+                                     headers={"Content-Type": "application/json"}, method="POST" if data is not None else "GET")
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return json.load(r)["data"]
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def kabari(user_id, judul, isi, tautan="pesanan"):
+    """Notifikasi ke layanan-auth (endpoint internal, diblokir dari luar oleh gateway)."""
+    if user_id:
+        ambil_json(f"{AUTH_URL}/api/auth/internal/notifikasi", {"user_id": user_id, "judul": judul, "isi": isi, "tautan": tautan})
 
 
 def ok(data, code=200, message="success"):
@@ -154,9 +179,12 @@ def katalog():
         sisa = float(p["jumlah_kg"]) - t.get(p["id"], 0.0)
         tk = toko.get(p["pemilik_id"])
         if sisa > 0 and tk:
-            items.append({"toko": tk["nama_toko"], "provinsi": tk["provinsi"], "kota": tk["kota"], "panen_id": p["id"], "komoditas": p["komoditas"], "kualitas": p["kualitas"],
+            items.append({"toko": tk["nama_toko"], "toko_id": tk["id"], "provinsi": tk["provinsi"], "kota": tk["kota"], "kota_id": tk.get("kota_id"),
+                          "nama_produk": p.get("nama_produk") or p["komoditas"], "deskripsi": p.get("deskripsi"), "foto": p.get("foto"),
+                          "harga_normal": p["harga_per_kg"], "promo_aktif": p.get("promo_aktif", False), "diskon_persen": p.get("diskon_persen", 0),
+                          "promo_sampai": p.get("promo_sampai"), "unggulan": p.get("unggulan", False), "terjual_kg": t.get(p["id"], 0.0), "panen_id": p["id"], "komoditas": p["komoditas"], "kualitas": p["kualitas"],
                           "tanggal_panen": p["tanggal_panen"], "lahan_id": p["lahan_id"],
-                          "penjual_id": p["pemilik_id"], "harga_per_kg": p["harga_per_kg"], "sisa_kg": sisa})
+                          "penjual_id": p["pemilik_id"], "harga_per_kg": p.get("harga_aktif", p["harga_per_kg"]), "sisa_kg": sisa})
     return ok(items, message=f"{len(items)} produk tersedia")
 
 
@@ -212,18 +240,41 @@ def create_penjualan():
         # Pembeli membeli dari katalog: harga mengikuti harga panen, pembeli = dirinya sendiri
         if not b.get("panen_id") or not b.get("jumlah_kg"):
             return err("panen_id dan jumlah_kg wajib diisi", 400)
+        metode = b.get("metode_bayar") or "QRIS"
+        if metode not in METODE:
+            return err("metode bayar harus QRIS, GoPay, DANA, atau Transfer Bank", 400)
+        # alamat kirim: dari body, kalau kosong pakai alamat di profil pembeli
+        akun = ambil_json(f"{AUTH_URL}/api/auth/internal/kontak/{u[0]}") or {}
+        prov_t = (b.get("provinsi_tujuan") or akun.get("provinsi") or "").upper()
+        kota_t = b.get("kota_tujuan_id") or akun.get("kota_id")
+        alamat = (b.get("alamat_kirim") or akun.get("alamat") or "").strip()
+        if not prov_t or not alamat:
+            return err("lengkapi alamat kirim (provinsi, kota, alamat) di Akun Saya atau di form checkout", 422)
+        toko = (toko_terverifikasi() or {})
         with conn() as c, c.cursor() as cur:
             panen, gagal = ambil_panen_cek_stok(cur, b["panen_id"], b["jumlah_kg"])
             if gagal:
                 return gagal
+            tk = toko.get(panen["pemilik_id"])
+            if not tk:
+                return err("toko penjual belum terverifikasi, produk tidak bisa dibeli", 422)
+            q = urllib.parse.urlencode({k: v for k, v in {"asal": tk["provinsi"], "tujuan": prov_t, "ton": float(b["jumlah_kg"]) / 1000,
+                                                         "kota_asal": tk.get("kota_id"), "kota_tujuan": kota_t}.items() if v})
+            est = ambil_json(f"{INFO_URL}/api/info/publik/estimasi?{q}")
+            if not est:
+                return err("ongkir belum bisa dihitung (layanan-info tidak merespons atau alamat tidak valid)", 503)
             cur.execute(
-                "INSERT INTO penjualan (panen_id, penjual_id, pembeli_id, pembeli, jenis_pembeli, jumlah_kg, "
-                "harga_jual_per_kg, tanggal_jual, status_bayar, status_pesanan) VALUES (%s,%s,%s,%s,'Perorangan',%s,%s,%s,'Belum Lunas','Menunggu Bayar')",
-                (b["panen_id"], panen["pemilik_id"], u[0], u[2], b["jumlah_kg"], panen["harga_per_kg"], date.today()),
+                "INSERT INTO penjualan (panen_id, penjual_id, pembeli_id, pembeli, jenis_pembeli, jumlah_kg, harga_jual_per_kg, tanggal_jual, "
+                "status_bayar, status_pesanan, metode_bayar, ongkir, moda_kirim, estimasi_hari, kota_asal, kota_tujuan, provinsi_tujuan, "
+                "alamat_kirim, no_hp_penerima, jalur) VALUES (%s,%s,%s,%s,'Perorangan',%s,%s,%s,'Belum Lunas','Menunggu Bayar',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (b["panen_id"], panen["pemilik_id"], u[0], u[2], b["jumlah_kg"], panen.get("harga_aktif", panen["harga_per_kg"]), date.today(),
+                 metode, est["total_biaya"], est["moda"], est["estimasi_hari"], est["kota_asal"], est["kota_tujuan"], prov_t,
+                 alamat[:200], (b.get("no_hp_penerima") or akun.get("no_hp") or "")[:20], json.dumps(est["jalur"])),
             )
             cur.execute("SELECT * FROM penjualan WHERE id=%s", (cur.lastrowid,))
             row = cur.fetchone()
-        return ok(clean(row), 201, "pembelian berhasil, menunggu pembayaran")
+        kabari(panen["pemilik_id"], "Pesanan baru", f"{u[2]} memesan {panen['komoditas']} {float(b['jumlah_kg']):g} kg, dikirim ke {est['kota_tujuan']}. Menunggu pembayaran.")
+        return ok(clean(row), 201, "pesanan dibuat, silakan bayar")
 
     missing = [f for f in REQUIRED if b.get(f) in (None, "")]
     if missing:
@@ -271,6 +322,8 @@ def update_penjualan(sid):
                     [b[f] for f in cols] + extra_args + [sid])
         if b.get("status_bayar") == "Lunas":   # pembayaran dikonfirmasi -> pesanan Dibayar
             cur.execute("UPDATE penjualan SET status_pesanan='Dibayar' WHERE id=%s AND status_pesanan='Menunggu Bayar'", (sid,))
+            if lama["status_bayar"] != "Lunas":
+                kabari(lama["pembeli_id"], "Pembayaran dikonfirmasi", f"Pembayaran pesanan #{sid} sudah diterima penjual. Pesanan segera diproses.")
         cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
         row = cur.fetchone()
     return ok(clean(row), message="penjualan berhasil diperbarui")
@@ -318,6 +371,10 @@ def ubah_status(sid):
         if baru == "Diproses" and row["status_bayar"] != "Lunas":
             return err("pesanan baru bisa diproses setelah pembayaran lunas", 422)
         cur.execute("UPDATE penjualan SET status_pesanan=%s WHERE id=%s", (baru, sid))
+        teks = {"Diproses": "sedang dikemas penjual", "Dikirim": f"sedang dikirim ({row.get('moda_kirim') or 'kurir'}), lacak di Pesanan Saya",
+                "Selesai": "sudah diterima. Terima kasih!"}[baru]
+        kabari(row["pembeli_id"] if not pembeli_pemilik else row["penjual_id"], f"Pesanan #{sid} {baru.lower()}",
+               f"Pesanan #{sid} {teks}" if not pembeli_pemilik else f"Pembeli sudah menerima pesanan #{sid}.")
         cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
         row = cur.fetchone()
     return ok(clean(row), message=f"pesanan {sid} sekarang {baru}")
@@ -336,6 +393,9 @@ def batal(sid):
         if row["status_pesanan"] not in BOLEH_BATAL:
             return err(f"pesanan sudah {row['status_pesanan']}, tidak bisa dibatalkan lagi", 422)
         cur.execute("UPDATE penjualan SET status_pesanan='Dibatalkan' WHERE id=%s", (sid,))
+        oleh_pembeli = u and u[1] == "pembeli"
+        kabari(row["penjual_id"] if oleh_pembeli else row["pembeli_id"], f"Pesanan #{sid} dibatalkan",
+               f"Pesanan #{sid} dibatalkan oleh {'pembeli' if oleh_pembeli else 'penjual'}.")
         cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
         row = cur.fetchone()
     pesan = "pesanan dibatalkan, stok dikembalikan"
@@ -374,7 +434,7 @@ def qris(sid):
         return err("transaksi ini sudah lunas", 422)
     if row["status_pesanan"] == "Dibatalkan":
         return err("pesanan ini sudah dibatalkan", 422)
-    total = round(float(row["jumlah_kg"]) * float(row["harga_jual_per_kg"]))
+    total = round(clean(row)["total_bayar"])
     kode = f"TM-{sid:06d}"
     payload = f"SIMULASI-QRIS|{MERCHANT}|{kode}|IDR{total}"
     img = qrcode.make(payload, image_factory=qrcode.image.svg.SvgPathImage, box_size=10, border=2)
@@ -382,6 +442,44 @@ def qris(sid):
     return ok({"kode_bayar": kode, "merchant": MERCHANT, "total": total, "berlaku_menit": BERLAKU_MENIT,
                "status_bayar": row["status_bayar"], "payload": payload, "qr_svg": svg, "simulasi": True},
               message="kode QRIS simulasi dibuat")
+
+
+@app.get("/api/penjualan/<int:sid>/pembayaran")
+def pembayaran(sid):
+    """Instruksi bayar SIMULASI sesuai metode pesanan: QRIS, GoPay, DANA (QR + nomor tujuan), Transfer Bank (virtual account)."""
+    u = pengguna()
+    with conn() as c, c.cursor() as cur:
+        row, gagal = ambil_milik_pembeli(cur, sid, u)
+        if gagal:
+            return gagal
+    if row["status_bayar"] == "Lunas":
+        return err("transaksi ini sudah lunas", 422)
+    if row["status_pesanan"] == "Dibatalkan":
+        return err("pesanan ini sudah dibatalkan", 422)
+    metode = request.args.get("metode") or row.get("metode_bayar") or "QRIS"
+    if metode not in METODE:
+        return err("metode tidak dikenal", 400)
+    d = clean(row)
+    total = round(d["total_bayar"])
+    kode = f"TM-{sid:06d}"
+    hasil = {"metode": metode, "kode_bayar": kode, "merchant": MERCHANT, "total": total, "berlaku_menit": BERLAKU_MENIT, "simulasi": True}
+    if metode == "Transfer Bank":
+        hasil["virtual_account"] = [{"bank": b, "nomor": f"{p}{sid:010d}"} for b, p in
+                                    (("BCA", "39358"), ("BNI", "8808"), ("BRI", "12699"), ("Mandiri", "89608"))]
+        hasil["langkah"] = ["Buka m-banking atau ATM bank pilihan Anda.", "Pilih Transfer ke Virtual Account.",
+                            "Masukkan nomor VA di atas, pastikan nama tujuan TANIMART (SIMULASI).", "Setelah transfer, tekan tombol Saya sudah bayar."]
+    else:
+        payload = f"SIMULASI-{metode.upper()}|{MERCHANT}|{kode}|IDR{total}"
+        img = qrcode.make(payload, image_factory=qrcode.image.svg.SvgPathImage, box_size=10, border=2)
+        hasil.update({"payload": payload, "qr_svg": img.to_string(encoding="unicode")})
+        hasil["langkah"] = ({"QRIS": ["Buka aplikasi e-wallet atau m-banking apa pun.", "Pilih Scan / Bayar QRIS.", "Arahkan kamera ke kode QR."],
+                             "GoPay": ["Buka aplikasi Gojek, pilih Bayar.", "Scan kode QR, atau kirim ke nomor merchant 0811-0000-2026 (simulasi)."],
+                             "DANA": ["Buka aplikasi DANA, pilih Scan.", "Scan kode QR, atau kirim ke nomor merchant 0811-0000-2026 (simulasi)."]}[metode]
+                            + ["Setelah membayar, tekan tombol Saya sudah bayar."])
+    if metode != row.get("metode_bayar"):
+        with conn() as c, c.cursor() as cur:
+            cur.execute("UPDATE penjualan SET metode_bayar=%s WHERE id=%s", (metode, sid))
+    return ok(hasil, message=f"instruksi pembayaran {metode} (simulasi)")
 
 
 @app.post("/api/penjualan/<int:sid>/sudah-bayar")
@@ -394,6 +492,7 @@ def sudah_bayar(sid):
         if row["status_bayar"] != "Belum Lunas" or row["status_pesanan"] == "Dibatalkan":
             return err(f"status transaksi sudah '{row['status_bayar']}' / pesanan '{row['status_pesanan']}'", 422)
         cur.execute("UPDATE penjualan SET status_bayar='Menunggu Konfirmasi' WHERE id=%s", (sid,))
+        kabari(row["penjual_id"], "Pembeli sudah membayar", f"Cek pembayaran pesanan #{sid} ({row.get('metode_bayar') or 'QRIS'}), lalu tekan Lunaskan.")
         cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
         row = cur.fetchone()
     return ok(clean(row), message="pembayaran dikirim, menunggu konfirmasi penjual")

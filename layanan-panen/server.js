@@ -1,11 +1,15 @@
-// RantaiTani - Layanan Panen (Express): CRUD data hasil panen, database db_panen.
+// TaniMart - Layanan Panen (Express): CRUD hasil panen = produk (foto, deskripsi, promo), database db_panen.
 // Memvalidasi lahan_id & kepemilikan dengan memanggil layanan-lahan lewat Docker network.
 // Identitas pengguna dari gateway: header X-User-Id / X-User-Role (tanpa header = panggilan internal).
 const express = require("express");
+const fs = require("fs/promises");
+const path = require("path");
+const crypto = require("crypto");
 const mysql = require("mysql2/promise");
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "4mb" }));   // foto produk dikirim sebagai data URL
+const FOLDER_FOTO = process.env.UPLOAD_DIR || "/data/uploads/produk";
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || "db",
@@ -18,7 +22,8 @@ const pool = mysql.createPool({
   decimalNumbers: true,
 });
 const LAHAN_URL = process.env.LAHAN_SERVICE_URL || "http://layanan-lahan:5000";
-const FIELDS = ["lahan_id", "tanggal_panen", "komoditas", "jumlah_kg", "kualitas", "harga_per_kg", "catatan"];
+const FIELDS = ["lahan_id", "tanggal_panen", "komoditas", "jumlah_kg", "kualitas", "harga_per_kg", "catatan",
+  "nama_produk", "deskripsi", "harga_promo", "promo_sampai", "unggulan"];
 const REQUIRED = ["lahan_id", "tanggal_panen", "komoditas", "jumlah_kg", "harga_per_kg"];
 
 const ok = (res, data, code = 200, message = "success") =>
@@ -26,7 +31,24 @@ const ok = (res, data, code = 200, message = "success") =>
 const err = (res, message, code) =>
   res.status(code).json({ status: "error", service: "layanan-panen", message });
 
-const withTotal = (r) => ({ ...r, total_nilai: Number((r.jumlah_kg * r.harga_per_kg).toFixed(2)) });
+const hariIni = () => new Date().toISOString().slice(0, 10);
+const promoAktif = (r) => r.harga_promo != null && r.harga_promo < r.harga_per_kg && (!r.promo_sampai || r.promo_sampai >= hariIni());
+const withTotal = (r) => {
+  const promo = promoAktif(r);
+  return { ...r, unggulan: !!r.unggulan, promo_aktif: promo, harga_aktif: promo ? r.harga_promo : r.harga_per_kg,
+    diskon_persen: promo ? Math.round((1 - r.harga_promo / r.harga_per_kg) * 100) : 0,
+    total_nilai: Number((r.jumlah_kg * r.harga_per_kg).toFixed(2)) };
+};
+// Nilai kosong dari form -> NULL; promo harus lebih murah dari harga normal
+function rapikan(b, lama = {}) {
+  for (const f of ["harga_promo", "promo_sampai", "nama_produk", "deskripsi"]) if (b[f] === "") b[f] = null;
+  if ("unggulan" in b) b.unggulan = b.unggulan === true || b.unggulan === 1 || b.unggulan === "1" || b.unggulan === "on" ? 1 : 0;
+  const normal = Number(b.harga_per_kg ?? lama.harga_per_kg);
+  if (b.harga_promo != null && !(Number(b.harga_promo) > 0 && Number(b.harga_promo) < normal))
+    return "harga promo harus lebih dari 0 dan lebih murah dari harga normal";
+  if (b.deskripsi && String(b.deskripsi).length > 500) return "deskripsi maksimal 500 karakter";
+  return null;
+}
 const pengguna = (req) =>
   req.get("X-User-Role") ? { id: Number(req.get("X-User-Id")), role: req.get("X-User-Role") } : null;
 const bolehUbah = (u, row) => !u || u.role === "admin" || (u.role === "penjual" && row.pemilik_id === u.id);
@@ -85,6 +107,8 @@ app.post("/api/panen", async (req, res) => {
   const b = req.body || {};
   const missing = REQUIRED.filter((f) => b[f] === undefined || b[f] === "");
   if (missing.length) return err(res, `field wajib kosong: ${missing.join(", ")}`, 400);
+  const salah = rapikan(b);
+  if (salah) return err(res, salah, 400);
   const lahan = await validasiLahan(res, u, b.lahan_id);
   if (!lahan) return;
   const cols = FIELDS.filter((f) => f in b);
@@ -104,6 +128,8 @@ app.put("/api/panen/:id", async (req, res) => {
   const [lama] = await pool.query("SELECT * FROM panen WHERE id = ?", [req.params.id]);
   if (!lama.length) return err(res, `panen id ${req.params.id} tidak ditemukan`, 404);
   if (!bolehUbah(u, lama[0])) return err(res, "anda hanya boleh mengubah panen milik sendiri", 403);
+  const salah = rapikan(b, lama[0]);
+  if (salah) return err(res, salah, 400);
   const sets = cols.map((f) => `${f} = ?`), args = cols.map((f) => b[f]);
   if ("lahan_id" in b) {
     const lahan = await validasiLahan(res, u, b.lahan_id);
@@ -121,7 +147,42 @@ app.delete("/api/panen/:id", async (req, res) => {
   if (!lama.length) return err(res, `panen id ${req.params.id} tidak ditemukan`, 404);
   if (!bolehUbah(u, lama[0])) return err(res, "anda hanya boleh menghapus panen milik sendiri", 403);
   await pool.query("DELETE FROM panen WHERE id = ?", [req.params.id]);
+  await hapusFile(lama[0].foto);
   ok(res, { id: Number(req.params.id) }, 200, "data panen berhasil dihapus");
+});
+
+// ---- Foto produk: data URL JPEG/PNG/WebP maks 2 MB, disimpan di volume, disajikan gateway di /uploads/produk/
+const JENIS = { "image/jpeg": ["jpg", [0xff, 0xd8, 0xff]], "image/png": ["png", [0x89, 0x50, 0x4e, 0x47]], "image/webp": ["webp", [0x52, 0x49, 0x46, 0x46]] };
+async function hapusFile(url) {
+  if (url && url.startsWith("/uploads/produk/")) await fs.unlink(path.join(FOLDER_FOTO, path.basename(url))).catch(() => {});
+}
+app.post("/api/panen/:id/foto", async (req, res) => {
+  const u = pengguna(req);
+  const [lama] = await pool.query("SELECT * FROM panen WHERE id = ?", [req.params.id]);
+  if (!lama.length) return err(res, `panen id ${req.params.id} tidak ditemukan`, 404);
+  if (!bolehUbah(u, lama[0]) || (u && u.role === "pembeli")) return err(res, "anda hanya boleh mengubah foto produk sendiri", 403);
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(req.body?.gambar || ""));
+  if (!m) return err(res, "kirim gambar JPG, PNG, atau WebP", 400);
+  const buf = Buffer.from(m[2], "base64");
+  const [ext, sig] = JENIS[m[1]];
+  if (buf.length > 2 * 1024 * 1024) return err(res, "ukuran foto maksimal 2 MB", 413);
+  if (!sig.every((b, i) => buf[i] === b)) return err(res, "isi file bukan gambar yang valid", 400);
+  const nama = `${lama[0].id}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
+  await fs.mkdir(FOLDER_FOTO, { recursive: true });
+  await fs.writeFile(path.join(FOLDER_FOTO, nama), buf);
+  await hapusFile(lama[0].foto);
+  await pool.query("UPDATE panen SET foto = ? WHERE id = ?", [`/uploads/produk/${nama}`, lama[0].id]);
+  const [rows] = await pool.query("SELECT * FROM panen WHERE id = ?", [lama[0].id]);
+  ok(res, withTotal(rows[0]), 200, "foto produk berhasil diunggah");
+});
+app.delete("/api/panen/:id/foto", async (req, res) => {
+  const u = pengguna(req);
+  const [lama] = await pool.query("SELECT * FROM panen WHERE id = ?", [req.params.id]);
+  if (!lama.length) return err(res, `panen id ${req.params.id} tidak ditemukan`, 404);
+  if (!bolehUbah(u, lama[0]) || (u && u.role === "pembeli")) return err(res, "anda hanya boleh mengubah foto produk sendiri", 403);
+  await hapusFile(lama[0].foto);
+  await pool.query("UPDATE panen SET foto = NULL WHERE id = ?", [lama[0].id]);
+  ok(res, { id: lama[0].id }, 200, "foto produk dihapus");
 });
 
 app.use((e, req, res, next) => err(res, e.message, 500));

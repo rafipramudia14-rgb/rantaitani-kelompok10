@@ -5,8 +5,10 @@
   const judul = (s) => String(s).toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
   const hari = (h) => (h < 1 ? Math.max(1, Math.round(h * 24)) + " jam" : h.toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " hari");
 
-  async function hitung(asal, tujuan, ton) {
+  async function hitung(asal, tujuan, ton, kotaAsal, kotaTujuan) {
     const q = new URLSearchParams({ asal, tujuan, ton });
+    if (kotaAsal) q.set("kota_asal", kotaAsal);
+    if (kotaTujuan) q.set("kota_tujuan", kotaTujuan);
     const r = await fetch("/api/info/publik/estimasi?" + q, { cache: "no-store" });
     const j = await r.json();
     if (!r.ok) throw new Error(j.message || "Gagal menghitung estimasi");
@@ -24,7 +26,7 @@
         <div><span>Muatan</span><b>${d.ton.toLocaleString("id-ID")} ton</b><small>${d.jumlah_kontainer ? d.jumlah_kontainer + " kontainer · " : ""}${d.jumlah_truk} truk</small></div>
       </div>
       <ol class="est-tahap">${d.tahap.map((t) => `<li><b>${esc(t.moda)}</b> · ${esc(t.keterangan)}<br>
-        <small>${esc(t.rincian)} = ${rp(t.biaya)} · ${hari(t.hari)}</small></li>`).join("")}</ol>
+        <small>${esc(t.rincian)}${t.biaya == null ? "" : " = " + rp(t.biaya)} · ${hari(t.hari)}</small></li>`).join("")}</ol>
       ${awet}
       <details class="est-asumsi"><summary>Cara menghitung & asumsi</summary>
         <p>Jarak garis lurus ${judul(d.asal)} → ${judul(d.tujuan)} ± ${d.jarak_garis_lurus_km.toLocaleString("id-ID")} km (dari titik tengah provinsi di peta).

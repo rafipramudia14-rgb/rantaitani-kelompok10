@@ -18,8 +18,8 @@ TaniMart punya dua bagian di satu alamat:
 
 | Pengguna | Yang bisa dilakukan |
 |---|---|
-| **Penjual (petani)** | Buka toko (lokasi, luas lahan, hasil per panen, kontak, bukti lahan), kelola lahan & panen, konfirmasi bayar, proses & kirim pesanan |
-| **Pembeli** | Katalog dari toko terverifikasi, peta penjual terdekat, estimasi kirim, beli dalam gram sampai ton, bayar QRIS (simulasi), batalkan sebelum diproses |
+| **Penjual (petani)** | Buka toko tanpa KTP (lokasi kab/kota, luas lahan, hasil per panen, kontak), kelola lahan, unggah foto produk, pasang promo & produk unggulan, konfirmasi bayar, proses & kirim pesanan |
+| **Pembeli** | Belanja ala marketplace (pencarian, kategori, promo), ongkir otomatis ke alamatnya, bayar QRIS / GoPay / DANA / transfer bank (simulasi), lacak pengiriman di peta, batalkan sebelum diproses |
 | **Admin** | Verifikasi toko, perbarui harga pangan, kelola semua data & akun, pantau status layanan |
 
 ## Arsitektur (8 container)
@@ -56,13 +56,15 @@ Akun contoh (dibuat otomatis saat pertama jalan):
 
 | Peran | Username | Password |
 |---|---|---|
-| Admin | `admin` | `admin123` |
-| Penjual | `darto`, `siti` (toko terverifikasi), `ujang` (toko menunggu verifikasi) | `petani123` |
-| Pembeli | `rina` | `pembeli123` |
+| Admin | `admin@tanimart.test` | `admin123` |
+| Penjual | `darto@tanimart.test`, `siti@tanimart.test` (toko terverifikasi), `ujang@tanimart.test` (menunggu verifikasi) | `petani123` |
+| Pembeli | `rina@tanimart.test` (alamat Kota Balikpapan) | `pembeli123` |
+
+Login bisa memakai email atau username lama (`admin`, `darto`, `rina`, ...). Lupa password memakai kode reset **simulasi** yang tampil di layar (tidak ada server email).
 
 Perintah lain: `docker compose ps` (status), `docker compose logs -f <service>` (log), `docker compose down` (berhenti, data tetap), `docker compose down -v` (hapus beserta data).
 
-Uji API otomatis (51 skenario, data uji dihapus lagi): `python tes/uji_api.py`
+Uji API otomatis (67 skenario, data uji dihapus lagi): `python tes/uji_api.py`
 
 ## Endpoint API (melalui gateway :8090)
 
@@ -80,11 +82,27 @@ Uji API otomatis (51 skenario, data uji dihapus lagi): `python tes/uji_api.py`
 | GET · POST | `/api/penjualan/{id}/qris`, `/api/penjualan/{id}/sudah-bayar` | Pembayaran QRIS (simulasi) |
 | GET/POST/PUT/DELETE | `/api/info/harga[/{id}]` | CRUD harga pangan (ubah: admin) |
 | GET | `/api/info/publik/harga`, `/harga/terbaru`, `/produksi`, `/provinsi` | Data info publik (hanya baca) |
-| GET | `/api/info/publik/estimasi?asal=&tujuan=&ton=` | Estimasi rute, biaya, waktu kirim |
+| GET | `/api/info/publik/estimasi?asal=&tujuan=&ton=&kota_asal=&kota_tujuan=` | Estimasi rute, ongkir, waktu kirim, titik jalur peta |
+| GET | `/api/info/publik/kota[?provinsi=]` | 514 kab/kota + koordinat |
+| GET/PUT · POST | `/api/auth/profil`, `/api/auth/password` | Profil & alamat kirim, ganti password |
+| POST | `/api/auth/lupa`, `/api/auth/reset` | Lupa password (kode simulasi) |
+| GET · POST | `/api/auth/notifikasi`, `/api/auth/notifikasi/baca` | Notifikasi |
+| POST/DELETE | `/api/panen/{id}/foto` | Foto produk (JPG/PNG/WebP, maks 2 MB) |
+| GET | `/api/penjualan/{id}/pembayaran?metode=` | Instruksi bayar QRIS / GoPay / DANA / Transfer Bank (simulasi) |
 | POST | `/api/bantuan/chat`, `/api/bantuan/publik` | Chatbot |
 | GET | `/api/{layanan}/health` | Status layanan |
 
 Kecuali login, register, dan `/publik`, kirim header `Authorization: Bearer <token>`.
+
+## Belanja ala marketplace
+
+| Belanja | Checkout + ongkir |
+|---|---|
+| ![Belanja](docs/gambar/27-pembeli-belanja.jpg) | ![Checkout](docs/gambar/28-pembeli-checkout-ongkir.jpg) |
+| **Lacak pengiriman** | **Bayar transfer bank (simulasi)** |
+| ![Lacak](docs/gambar/29-pembeli-lacak-pengiriman.jpg) | ![Transfer bank](docs/gambar/30-pembayaran-transfer-bank.jpg) |
+
+Ongkir dihitung dari kab/kota toko ke kab/kota pembeli. Pesanan sampai 100 kg dihitung sebagai paket ekspedisi per kg; di atas itu memakai truk, feri, atau kapal kontainer. Foto produk disimpan di volume Docker `rantaitani-uploads`.
 
 ## Alur pesanan
 
@@ -102,18 +120,19 @@ Kecuali login, register, dan `/publik`, kirim header `Authorization: Bearer <tok
 
 - Harga gabah bulanan 2024, produksi padi dan perkebunan per provinsi 2024: **BPS**.
 - Harga beras medium tingkat penggilingan (17 Okt–17 Nov 2026): **Panel Harga Badan Pangan Nasional**, diekspor manual dari situsnya.
+- Koordinat 514 kab/kota: [ArrayAccess/Indonesia-Postal-And-Area](https://github.com/ArrayAccess/Indonesia-Postal-And-Area) (MIT), provinsi Papua disesuaikan dengan pemekaran 2022.
 - Batas provinsi: [denyherianto/indonesia-geojson-topojson-maps-with-38-provinces](https://github.com/denyherianto/indonesia-geojson-topojson-maps-with-38-provinces) (CC BY 4.0), disederhanakan.
 - Estimasi kirim memakai tarif **asumsi** yang ditulis di `layanan-info/rute.py`, bukan tarif resmi ekspedisi.
-- QRIS adalah **simulasi** untuk tugas kuliah. Tidak terhubung ke bank atau e-wallet dan tidak ada uang yang berpindah.
+- QRIS, GoPay, DANA, dan transfer bank adalah **simulasi** untuk tugas kuliah. Tidak terhubung ke bank atau e-wallet mana pun dan tidak ada uang yang berpindah. Nama metode hanya dipakai sebagai label pilihan, tanpa logo resmi.
 
 ## Struktur folder
 
 ```
 ├── docker-compose.yml     # orkestrasi 8 container
 ├── .env.example           # contoh variabel lingkungan
-├── database/              # 01 init, 02 info (harga & produksi), 03 toko, 04 status pesanan
+├── database/              # 01 init, 02 info, 03 toko, 04 status pesanan, 05 akun & notifikasi, 06 produk, 07 checkout
 ├── gateway/nginx.conf     # reverse proxy + pemeriksaan token
-├── frontend/              # halaman info (/), pasar (/pasar/), CSS, JS, aset
+├── frontend/              # info (/), pasar (/pasar/), belanja.js/.css (marketplace), aset (font, kota.json)
 ├── layanan-auth/          # Express: akun & toko
 ├── layanan-lahan/         # Flask
 ├── layanan-panen/         # Express

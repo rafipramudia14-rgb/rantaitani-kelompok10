@@ -17,6 +17,9 @@ services:
       - ./database/info.sql:/docker-entrypoint-initdb.d/02-info.sql:ro
       - ./database/toko.sql:/docker-entrypoint-initdb.d/03-toko.sql:ro
       - ./database/pesanan.sql:/docker-entrypoint-initdb.d/04-pesanan.sql:ro
+      - ./database/akun.sql:/docker-entrypoint-initdb.d/05-akun.sql:ro
+      - ./database/produk.sql:/docker-entrypoint-initdb.d/06-produk.sql:ro
+      - ./database/checkout.sql:/docker-entrypoint-initdb.d/07-checkout.sql:ro
     networks:
       - tani-net
     healthcheck:
@@ -70,6 +73,8 @@ services:
       DB_PASSWORD: ${PANEN_DB_PASSWORD}
       DB_NAME: db_panen
       LAHAN_SERVICE_URL: http://layanan-lahan:5000     # komunikasi antar-service via DNS Docker
+    volumes:
+      - uploads:/data/uploads                          # foto produk
     depends_on:
       db:
         condition: service_healthy
@@ -89,7 +94,8 @@ services:
       DB_PASSWORD: ${PENJUALAN_DB_PASSWORD}
       DB_NAME: db_penjualan
       PANEN_SERVICE_URL: http://layanan-panen:3000     # cek stok ke layanan-panen
-      AUTH_SERVICE_URL: http://layanan-auth:3000       # daftar toko terverifikasi
+      AUTH_SERVICE_URL: http://layanan-auth:3000       # toko terverifikasi, alamat pembeli, notifikasi
+      INFO_SERVICE_URL: http://layanan-info:5000       # hitung ongkir & jalur pengiriman
     depends_on:
       db:
         condition: service_healthy
@@ -135,6 +141,7 @@ services:
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./frontend:/usr/share/nginx/html:ro
+      - uploads:/usr/share/nginx/uploads:ro              # foto produk dari layanan-panen
     depends_on:
       - layanan-auth
       - layanan-lahan
@@ -153,3 +160,5 @@ networks:
 volumes:
   mysql-data:
     name: rantaitani-mysql-data
+  uploads:
+    name: rantaitani-uploads
