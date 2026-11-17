@@ -238,3 +238,23 @@ i[class^="logo-"]{display:inline-grid;place-items:center;width:30px;height:30px;
   max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #tab-iklan .cards{grid-template-columns:repeat(5,1fr)}
 @media (max-width:860px){#tab-iklan .cards{grid-template-columns:1fr 1fr}}
+
+/* ---- Pengiriman: resi & riwayat */
+.ps-resi{margin:2px 0;font-size:.82rem;color:var(--ink)!important}
+.lacak-kanan{display:grid;gap:12px;align-content:start;max-height:430px;overflow-y:auto}
+.lacak-resi{display:flex;flex-wrap:wrap;gap:6px}
+.lacak-resi:empty{display:none}
+.lacak-resi span{background:#f4efe1;border-radius:8px;padding:4px 8px;font-size:.78rem}
+.lacak-riwayat{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.lacak-riwayat li{display:grid;gap:1px;border-left:3px solid var(--line);padding:2px 0 2px 10px;font-size:.82rem}
+.lacak-riwayat li.baru{border-color:var(--green)}
+.lacak-riwayat li span{color:#33463a}.lacak-riwayat li small{color:var(--muted);font-size:.72rem}
+#dlg-kirim,#dlg-update-lacak{width:min(600px,calc(100% - 32px))}
+.kr-ringkas-kirim{margin:0;background:#faf7ef;border-radius:12px;padding:10px 12px;font-size:.88rem}
+.ck-metode.dua{grid-template-columns:1fr 1fr}
+.ck-metode.dua small{font-weight:400;color:var(--muted)}
+.lk-daftar{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:220px;overflow-y:auto}
+.lk-daftar li{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.84rem}
+.lk-daftar li div{display:grid}.lk-daftar small{color:var(--muted)}
+.lk-daftar li.kosong{color:var(--muted)}
+#lk-saran .chip{font-size:.74rem;padding:5px 10px}

@@ -1,5 +1,6 @@
 // TaniMart: tampilan marketplace pembeli (beranda, detail + checkout, pembayaran, pesanan & lacak),
 // halaman Akun Saya, notifikasi, dan lupa password. Memakai helper dari app.js ($, api, rp, berat, esc, toast, sesi, refresh).
+let LACAK = null;   // titik jalur pada jendela lacak yang sedang terbuka
 const B = { kota: null, kategori: "", cari: "", filterPesanan: "", profil: null, produk: null };
 const IKON = { padi: "🌾", beras: "🍚", gabah: "🌾", cabai: "🌶️", jagung: "🌽", bawang: "🧅", kopi: "☕", kakao: "🍫", tomat: "🍅", kedelai: "🫘", sawit: "🌴", kentang: "🥔", teh: "🍵", sayur: "🥬" };
 const ikonOf = (k) => IKON[Object.keys(IKON).find((x) => String(k).toLowerCase().includes(x))] || "🌱";
@@ -160,6 +161,7 @@ function renderPesanan() {
       <header><b>${esc(k?.toko || "Toko #" + j.penjual_id)}</b><span>#${j.id} · ${esc(j.tanggal_jual)}</span>${badgePesanan(j.status_pesanan)}</header>
       <div class="ps-isi"><div class="ps-foto">${fotoProduk({ foto: k?.foto || p.foto, komoditas: p.komoditas || "", nama_produk: k?.nama_produk })}</div>
         <div><h3>${esc(k?.nama_produk || p.nama_produk || p.komoditas || "Produk")}</h3><p>${berat(j.jumlah_kg)} × ${rp(j.harga_jual_per_kg)}/kg</p>
+        ${j.no_resi ? `<p class="ps-resi">Resi <b>${esc(j.no_resi)}</b> · ${esc(j.jasa_kirim || "")}</p>` : ""}
         ${j.kota_tujuan ? `<p class="ps-kirim">🚚 ${esc(j.moda_kirim || "")} · ${esc(j.kota_asal || "")} → ${esc(j.kota_tujuan)} · ± ${Math.ceil(j.estimasi_hari || 1)} hari</p>` : ""}
         ${jejak(j.status_pesanan)}</div>
         <div class="ps-total"><small>Total bayar${j.metode_bayar ? " · " + esc(j.metode_bayar) : ""}</small><b>${rp(j.total_bayar ?? j.total_harga)}</b>${j.ongkir ? `<small>termasuk ongkir ${rp(j.ongkir)}</small>` : ""}</div></div>
@@ -189,15 +191,22 @@ async function bukaLacak(id) {
   const pk = j.status_pesanan === "Dikirim" && pts.length === 2 ? { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 } : pts[posisi];
   svg.innerHTML = Object.values(geo.prov).map((p) => `<path d="${p.d}" class="lc-prov"/>`).join("")
     + `<polyline points="${pts.map((p) => p.x + "," + p.y).join(" ")}" class="lc-garis"/>`
-    + pts.map((p) => `<circle cx="${p.x}" cy="${p.y}" r="${p.jenis === "pelabuhan" ? 4 : 6}" class="lc-${p.jenis}"><title>${esc(p.nama)}</title></circle>
-       <text x="${p.x + 8}" y="${p.y - 8}" class="lc-label">${esc(p.nama)}</text>`).join("")
-    + (j.status_pesanan === "Dibatalkan" ? "" : `<text x="${pk.x}" y="${pk.y + 5}" class="lc-paket" text-anchor="middle">📦</text>`);
+    + pts.map((p) => {
+      // ukuran label & titik mengikuti skala peta; label di sisi kanan peta ditaruh di kiri titik supaya tidak terpotong
+      const kanan = p.x > cx + lebar * 0.2;
+      return `<circle cx="${p.x}" cy="${p.y}" r="${(p.jenis === "pelabuhan" ? lebar / 140 : lebar / 95).toFixed(2)}" class="lc-${p.jenis}"><title>${esc(p.nama)}</title></circle>
+       <text x="${p.x + (kanan ? -1 : 1) * lebar / 70}" y="${p.y - lebar / 70}" class="lc-label" text-anchor="${kanan ? "end" : "start"}" style="font-size:${(lebar / 48).toFixed(1)}px">${esc(p.nama)}</text>`;
+    }).join("")
+    + (j.status_pesanan === "Dibatalkan" ? "" : `<text id="lc-paket" x="${pk.x}" y="${pk.y + lebar / 60}" class="lc-paket" text-anchor="middle" style="font-size:${(lebar / 22).toFixed(1)}px">📦</text>`);
+  LACAK = { pts, lebar };
   $("#lacak-judul").textContent = `Lacak pesanan #${j.id}`;
   $("#lacak-info").innerHTML = `<b>${esc(j.moda_kirim || "")}</b> · ${esc(j.kota_asal)} → ${esc(j.kota_tujuan)} · perkiraan ${Math.ceil(j.estimasi_hari || 1)} hari<br><small>Alamat: ${esc(j.alamat_kirim || "-")}</small>`;
   $("#lacak-waktu").innerHTML = LANGKAH.map((l, i) => `<li class="${i <= tahap ? "on" : ""}"><b>${l}</b><span>${
     { "Menunggu Bayar": "Pesanan dibuat", Dibayar: "Pembayaran diterima penjual", Diproses: "Penjual mengemas barang", Dikirim: `Dalam perjalanan (${esc(j.moda_kirim || "kurir")})`, Selesai: "Barang diterima pembeli" }[l]}</span></li>`).join("")
     + (j.status_pesanan === "Dibatalkan" ? `<li class="batal"><b>Dibatalkan</b><span>Pesanan dibatalkan sebelum diproses</span></li>` : "");
+  $("#lacak-resi").innerHTML = ""; $("#lacak-riwayat").innerHTML = "";
   $("#dlg-lacak").showModal();
+  isiRiwayatLacak(j);
 }
 
 // ---------------------------------------------------------------- Akun saya

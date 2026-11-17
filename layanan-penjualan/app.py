@@ -377,7 +377,12 @@ def ubah_status(sid):
             return err("pembeli hanya bisa menandai pesanan diterima (Selesai)", 403)
         if baru == "Diproses" and row["status_bayar"] != "Lunas":
             return err("pesanan baru bisa diproses setelah pembayaran lunas", 422)
+        if baru == "Dikirim" and row["pembeli_id"]:
+            return err("pakai Atur Pengiriman (POST /api/penjualan/{id}/kirim) supaya jasa kirim & nomor resi tercatat", 422)
         cur.execute("UPDATE penjualan SET status_pesanan=%s WHERE id=%s", (baru, sid))
+        if baru == "Selesai" and row.get("no_resi"):
+            cur.execute("INSERT INTO riwayat_kirim (penjualan_id, lokasi, keterangan, oleh) VALUES (%s,%s,%s,%s)",
+                        (sid, row.get("kota_tujuan") or "-", "Paket diterima pembeli", u[2] if u else "sistem"))
         teks = {"Diproses": "sedang dikemas penjual", "Dikirim": f"sedang dikirim ({row.get('moda_kirim') or 'kurir'}), lacak di Pesanan Saya",
                 "Selesai": "sudah diterima. Terima kasih!"}[baru]
         kabari(row["pembeli_id"] if not pembeli_pemilik else row["penjual_id"], f"Pesanan #{sid} {baru.lower()}",
@@ -536,6 +541,157 @@ def hapus_ulasan(uid):
             return err("hanya penulis ulasan atau admin yang boleh menghapus", 403)
         cur.execute("DELETE FROM ulasan WHERE id=%s", (uid,))
     return ok({"id": uid}, message="ulasan dihapus")
+
+
+# ---------------------------------------------------------------- Pengiriman: atur kirim, resi, riwayat perjalanan
+JASA = {"paket": ["TaniKirim Reguler", "TaniKirim Kilat"], "truk": ["Truk Engkel TaniMart", "Truk Fuso TaniMart"],
+        "laut": ["Kargo Laut TaniMart (kontainer)"]}
+
+
+def jasa_untuk(row):
+    moda = (row.get("moda_kirim") or "").lower()
+    if moda.startswith("paket"):
+        return JASA["paket"]
+    return JASA["laut"] if "laut" in moda else JASA["truk"]
+
+
+def boleh_lihat(u, row):
+    return boleh_kelola(u, row) or (u and u[1] == "pembeli" and row["pembeli_id"] == u[0])
+
+
+@app.get("/api/penjualan/<int:sid>/kirim")
+def opsi_kirim(sid):
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
+        row = cur.fetchone()
+    if not row:
+        return err(f"penjualan id {sid} tidak ditemukan", 404)
+    if not boleh_kelola(pengguna(), row):
+        return err("hanya penjual pesanan ini atau admin", 403)
+    return ok({"jasa_kirim": jasa_untuk(row), "cara_serah": ["Pickup", "Antar ke counter"], "moda_kirim": row.get("moda_kirim")})
+
+
+@app.post("/api/penjualan/<int:sid>/kirim")
+def atur_kirim(sid):
+    """Penjual mengatur pengiriman: pilih jasa kirim & cara serah, sistem membuat nomor resi, status jadi Dikirim."""
+    u = pengguna()
+    b = request.get_json(silent=True) or {}
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
+        row = cur.fetchone()
+        if not row:
+            return err(f"penjualan id {sid} tidak ditemukan", 404)
+        if not boleh_kelola(u, row):
+            return err("hanya penjual pesanan ini atau admin", 403)
+        if row["status_pesanan"] != "Diproses":
+            return err(f"pengiriman diatur setelah pesanan Diproses (sekarang {row['status_pesanan']})", 422)
+        jasa = b.get("jasa_kirim") or jasa_untuk(row)[0]
+        if jasa not in jasa_untuk(row):
+            return err("jasa kirim tidak cocok dengan moda pengiriman pesanan ini", 400)
+        serah = b.get("cara_serah") or "Pickup"
+        if serah not in ("Pickup", "Antar ke counter"):
+            return err("cara serah harus Pickup atau Antar ke counter", 400)
+        resi = f"TMX{date.today():%y%m%d}{sid:05d}"
+        cur.execute("UPDATE penjualan SET status_pesanan='Dikirim', jasa_kirim=%s, cara_serah=%s, no_resi=%s, dikirim_at=NOW() WHERE id=%s",
+                    (jasa, serah, resi, sid))
+        ket = "Paket dijemput kurir di lokasi penjual" if serah == "Pickup" else "Paket diantar penjual ke counter ekspedisi"
+        cur.execute("INSERT INTO riwayat_kirim (penjualan_id, lokasi, keterangan, oleh) VALUES (%s,%s,%s,%s)",
+                    (sid, row.get("kota_asal") or "-", f"{ket} ({jasa})", u[2] if u else "sistem"))
+        cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
+        row = cur.fetchone()
+    kabari(row["pembeli_id"], f"Pesanan #{sid} dikirim", f"Resi {resi} lewat {jasa}. Lacak perjalanan paket di Pesanan Saya.")
+    return ok(clean(row), message=f"pengiriman diatur, nomor resi {resi}")
+
+
+@app.get("/api/penjualan/<int:sid>/riwayat")
+def daftar_riwayat(sid):
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
+        row = cur.fetchone()
+        if not row:
+            return err(f"penjualan id {sid} tidak ditemukan", 404)
+        if not boleh_lihat(pengguna(), row):
+            return err("anda tidak berhak melihat pesanan ini", 403)
+        cur.execute("SELECT * FROM riwayat_kirim WHERE penjualan_id=%s ORDER BY waktu, id", (sid,))
+        rows = [clean(x) for x in cur.fetchall()]
+    return ok({"no_resi": row.get("no_resi"), "jasa_kirim": row.get("jasa_kirim"), "cara_serah": row.get("cara_serah"), "riwayat": rows})
+
+
+def cek_riwayat(b, parsial=False):
+    out = {}
+    for f, n in (("lokasi", 100), ("keterangan", 200)):
+        v = (b.get(f) or "").strip()
+        if not v and not parsial:
+            return None, err(f"{f} wajib diisi", 400)
+        if v:
+            if len(v) > n:
+                return None, err(f"{f} maksimal {n} karakter", 400)
+            out[f] = v
+    if b.get("waktu"):
+        out["waktu"] = str(b["waktu"]).replace("T", " ")[:19]
+    return out, None
+
+
+@app.post("/api/penjualan/<int:sid>/riwayat")
+def tambah_riwayat(sid):
+    u = pengguna()
+    d, gagal = cek_riwayat(request.get_json(silent=True) or {})
+    if gagal:
+        return gagal
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM penjualan WHERE id=%s", (sid,))
+        row = cur.fetchone()
+        if not row:
+            return err(f"penjualan id {sid} tidak ditemukan", 404)
+        if not boleh_kelola(u, row):
+            return err("hanya penjual pesanan ini atau admin", 403)
+        if row["status_pesanan"] != "Dikirim":
+            return err("riwayat perjalanan hanya bisa ditambah saat pesanan Dikirim", 422)
+        cols = [*d.keys(), "penjualan_id", "oleh"]
+        cur.execute(f"INSERT INTO riwayat_kirim ({','.join(cols)}) VALUES ({','.join(['%s'] * len(cols))})", [*d.values(), sid, u[2] if u else "sistem"])
+        cur.execute("SELECT * FROM riwayat_kirim WHERE id=%s", (cur.lastrowid,))
+        rw = cur.fetchone()
+    kabari(row["pembeli_id"], f"Paket #{sid}: {d['keterangan'][:60]}", f"{d['lokasi']} · resi {row.get('no_resi') or '-'}")
+    return ok(clean(rw), 201, "riwayat perjalanan ditambahkan")
+
+
+def ambil_riwayat_milik(cur, rid, u):
+    cur.execute("SELECT r.*, p.penjual_id, p.pembeli_id FROM riwayat_kirim r JOIN penjualan p ON p.id=r.penjualan_id WHERE r.id=%s", (rid,))
+    rw = cur.fetchone()
+    if not rw:
+        return None, err(f"riwayat id {rid} tidak ditemukan", 404)
+    if not boleh_kelola(u, rw):
+        return None, err("hanya penjual pesanan ini atau admin", 403)
+    return rw, None
+
+
+@app.put("/api/penjualan/riwayat/<int:rid>")
+def ubah_riwayat(rid):
+    u = pengguna()
+    d, gagal = cek_riwayat(request.get_json(silent=True) or {}, parsial=True)
+    if gagal:
+        return gagal
+    if not d:
+        return err("tidak ada data yang diubah", 400)
+    with conn() as c, c.cursor() as cur:
+        rw, gagal = ambil_riwayat_milik(cur, rid, u)
+        if gagal:
+            return gagal
+        cur.execute(f"UPDATE riwayat_kirim SET {', '.join(k + '=%s' for k in d)} WHERE id=%s", [*d.values(), rid])
+        cur.execute("SELECT * FROM riwayat_kirim WHERE id=%s", (rid,))
+        rw = cur.fetchone()
+    return ok(clean(rw), message="riwayat diperbarui")
+
+
+@app.delete("/api/penjualan/riwayat/<int:rid>")
+def hapus_riwayat(rid):
+    u = pengguna()
+    with conn() as c, c.cursor() as cur:
+        rw, gagal = ambil_riwayat_milik(cur, rid, u)
+        if gagal:
+            return gagal
+        cur.execute("DELETE FROM riwayat_kirim WHERE id=%s", (rid,))
+    return ok({"id": rid}, message="riwayat dihapus")
 
 
 @app.get("/api/penjualan/<int:sid>/pembayaran")

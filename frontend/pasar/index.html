@@ -473,9 +473,13 @@
     <p id="lacak-info" class="lacak-info"></p>
     <div class="lacak-wadah">
       <svg id="lacak-peta" role="img" aria-label="Peta jalur pengiriman"></svg>
-      <ol class="lacak-waktu" id="lacak-waktu"></ol>
+      <div class="lacak-kanan">
+        <ol class="lacak-waktu" id="lacak-waktu"></ol>
+        <div class="lacak-resi" id="lacak-resi"></div>
+        <ol class="lacak-riwayat" id="lacak-riwayat"></ol>
+      </div>
     </div>
-    <p class="ket-peta"><span class="kotak" style="background:var(--green)"></span>Asal <span class="kotak" style="background:var(--gold)"></span>Pelabuhan <span class="kotak" style="background:var(--red)"></span>Tujuan · 📦 posisi paket (perkiraan dari status)</p>
+    <p class="ket-peta"><span class="kotak" style="background:var(--green)"></span>Asal <span class="kotak" style="background:var(--gold)"></span>Pelabuhan <span class="kotak" style="background:var(--red)"></span>Tujuan · 📦 posisi paket (dari riwayat perjalanan terakhir)</p>
   </div>
 </dialog>
 
@@ -521,6 +525,35 @@
     <p class="hint" id="ik-estimasi"></p>
     <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Simpan iklan</button></div>
   </form>
+</dialog>
+
+<dialog id="dlg-kirim">
+  <form method="dialog" id="form-kirim">
+    <h3>Atur Pengiriman</h3>
+    <input type="hidden" name="id">
+    <p class="kr-ringkas-kirim" id="kr-ringkas-kirim"></p>
+    <label>Jasa kirim<select name="jasa_kirim" required></select></label>
+    <fieldset class="ck-metode dua"><legend>Cara serah paket</legend>
+      <label><input type="radio" name="cara_serah" value="Pickup" checked><span>🛵 Pickup<br><small>kurir menjemput di lahan/gudang</small></span></label>
+      <label><input type="radio" name="cara_serah" value="Antar ke counter"><span>🏪 Antar ke counter<br><small>penjual mengantar ke agen</small></span></label>
+    </fieldset>
+    <p class="hint">Nomor resi dibuat otomatis (format TMX…) dan langsung dikirim ke pembeli lewat notifikasi.</p>
+    <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Kirim sekarang</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-update-lacak">
+  <div class="isi">
+    <div class="bayar-atas"><h3 id="lk-judul" style="margin:0;font:700 1.25rem var(--display)">Update lacak</h3><button type="button" class="btn sm" data-close>Tutup</button></div>
+    <ol class="lk-daftar" id="lk-daftar"></ol>
+    <form id="form-lacak" class="kartu-form polos">
+      <input type="hidden" name="id"><input type="hidden" name="rid">
+      <p class="hint" style="margin:0">Pilih saran atau tulis sendiri:</p>
+      <div class="chips" id="lk-saran"></div>
+      <div class="row"><label>Lokasi<input name="lokasi" required maxlength="100"></label><label>Keterangan<input name="keterangan" required maxlength="200"></label></div>
+      <div class="actions"><button class="btn primary">Simpan riwayat</button></div>
+    </form>
+  </div>
 </dialog>
 
 <dialog id="dlg-harga">
@@ -605,5 +638,6 @@
 <script src="../keranjang.js"></script>
 <script src="../ulasan.js"></script>
 <script src="../iklan.js"></script>
+<script src="../kirim.js"></script>
 </body>
 </html>
