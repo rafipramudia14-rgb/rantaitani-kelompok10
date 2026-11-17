@@ -31,7 +31,7 @@ let sesi = store.get();
 let lahanList = [], panenList = [], jualList = [], katalogList = [], userList = [], penjualList = [], hargaList = [], tokoList = [], tokoSaya = null;
 
 const MENU = {
-  admin: [["ringkasan", "Ringkasan"], ["lahan", "Data Lahan"], ["panen", "Hasil Panen"], ["penjualan", "Penjualan"], ["toko-admin", "Verifikasi Toko"], ["harga", "Harga Pangan"], ["pengguna", "Pengguna"], ["akun", "Akun"]],
+  admin: [["ringkasan", "Ringkasan"], ["lahan", "Lahan"], ["panen", "Panen"], ["penjualan", "Penjualan"], ["toko-admin", "Verifikasi Toko"], ["harga", "Harga Pangan"], ["pengguna", "Pengguna"], ["akun", "Akun"]],
   penjual: [["ringkasan", "Ringkasan"], ["toko", "Toko Saya"], ["lahan", "Lahan Saya"], ["panen", "Produk & Panen"], ["penjualan", "Pesanan Masuk"], ["akun", "Akun Saya"]],
   pembeli: [["beranda", "Belanja"], ["pesanan", "Pesanan Saya"], ["peta", "Peta Penjual"], ["akun", "Akun Saya"]],
 };
@@ -131,8 +131,16 @@ function masuk() {
   document.querySelectorAll(".admin-only").forEach((el) => (el.hidden = role() !== "admin"));
   $("#tabs").innerHTML = MENU[role()].map(([id, label], i) => `<button class="tab${i ? "" : " active"}" data-tab="${id}">${label}</button>`).join("");
   bukaTab(MENU[role()][0][0]);
+  aturNavbar();
   refresh();
 }
+// Kalau menu tidak muat dalam satu baris, navbar dibuat dua baris (menu di baris kedua)
+function aturNavbar() {
+  const bar = document.querySelector(".topbar"), tabs = $("#tabs");
+  bar.classList.remove("dua-baris");
+  if (tabs.scrollWidth > tabs.clientWidth + 2) bar.classList.add("dua-baris");
+}
+window.addEventListener("resize", () => { if (sesi) aturNavbar(); });
 
 function bukaTab(id) {
   document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === id));

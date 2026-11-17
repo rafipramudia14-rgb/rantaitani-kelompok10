@@ -270,3 +270,18 @@ td .btn.sm{margin:2px 4px 2px 0}
 .jejak{display:flex;gap:3px;margin-top:5px}
 .jejak i{width:14px;height:4px;border-radius:2px;background:var(--line)}
 .jejak i.on{background:var(--green)}
+
+/* ---- Navbar penuh (admin punya 8 menu): menu pindah ke baris kedua */
+.topbar.dua-baris{flex-wrap:wrap;border-radius:26px;row-gap:6px}
+.topbar.dua-baris .brand{order:1}
+.topbar.dua-baris .user,.topbar.dua-baris .notif,.topbar.dua-baris #keranjang-btn{order:2}
+.topbar.dua-baris .user{margin-left:0}
+.topbar.dua-baris .notif{margin-left:auto}
+.topbar.dua-baris .tabs{order:3;flex-basis:100%;justify-content:center;border-top:1px solid rgba(21,48,31,.08);padding-top:6px}
+
+/* ---- Tabel lebar: kolom aksi menempel di kanan supaya tombol Ubah/Hapus selalu terlihat */
+.tablewrap td:last-child,.tablewrap th:last-child{position:sticky;right:0;background:#fff;box-shadow:-10px 0 12px -10px rgba(21,48,31,.25)}
+.tablewrap th:last-child{background:#faf7ef}
+.tablewrap tbody tr:hover td:last-child{background:#fbf9f3}
+.tablewrap td.empty:last-child{position:static;box-shadow:none}
+#tbl-panen td:nth-child(10){white-space:normal;min-width:140px;max-width:200px}
