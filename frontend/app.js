@@ -31,7 +31,7 @@ let sesi = store.get();
 let lahanList = [], panenList = [], jualList = [], katalogList = [], userList = [], penjualList = [], hargaList = [], tokoList = [], tokoSaya = null;
 
 const MENU = {
-  admin: [["ringkasan", "Ringkasan"], ["lahan", "Lahan"], ["panen", "Panen"], ["penjualan", "Penjualan"], ["toko-admin", "Verifikasi Toko"], ["harga", "Harga Pangan"], ["pengguna", "Pengguna"], ["akun", "Akun"]],
+  admin: [["ringkasan", "Ringkasan"], ["lahan", "Lahan"], ["panen", "Panen"], ["penjualan", "Penjualan"], ["toko-admin", "Verifikasi Toko"], ["moderasi", "Moderasi"], ["harga", "Harga Pangan"], ["pengguna", "Pengguna"], ["akun", "Akun"]],
   penjual: [["ringkasan", "Ringkasan"], ["toko", "Toko Saya"], ["lahan", "Lahan Saya"], ["panen", "Produk & Panen"], ["iklan", "Iklan Saya"], ["voucher", "Voucher"], ["penjualan", "Pesanan Masuk"], ["akun", "Akun Saya"]],
   pembeli: [["beranda", "Belanja"], ["pesanan", "Pesanan Saya"], ["peta", "Peta Penjual"], ["akun", "Akun Saya"]],
 };
@@ -149,6 +149,7 @@ function bukaTab(id) {
   if (m) $("#judul-halaman").textContent = m[1];
   document.body.classList.toggle("mode-belanja", id === "beranda");
   if (id === "akun") renderAkun().catch((e) => toast(e.message, true));
+  if (id === "moderasi") renderModerasi();
 }
 $("#tabs").addEventListener("click", (e) => { if (e.target.dataset.tab) bukaTab(e.target.dataset.tab); });
 
@@ -714,9 +715,8 @@ async function refresh() {
   cekStatus();
   muatNotif();
   tandaiKeranjang();
-  muatIklan();
-  muatVoucher();
-  muatChat();
+  await Promise.all([muatIklan(), muatVoucher(), muatChat()]);
+  if (role() === "admin") { renderDashboardAdmin(); renderModerasi(); }
 }
 
 // ---------------- Chatbot asisten (layanan-bantuan)

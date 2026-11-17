@@ -99,6 +99,7 @@
       <div class="card"><span>Belum Dibayar</span><b id="s-piutang">–</b></div>
       <div class="card"><span>Sisa Stok</span><b id="s-sisa">–</b></div>
     </div>
+    <div id="admin-grafik" hidden></div>
     <h2>Status Lahan</h2>
     <div id="status-lahan" class="chips"></div>
     <h2>Panen Terbaru</h2>
@@ -247,6 +248,13 @@
         <p class="ket-peta"><span class="kotak ada"></span>Ada toko terverifikasi <span class="kotak asal"></span>Lokasi Anda · Jarak = perkiraan garis lurus antarprovinsi</p></div>
       <ol class="daftar-toko" id="daftar-toko"></ol>
     </div>
+  </section>
+
+  <!-- Moderasi (admin) -->
+  <section id="tab-moderasi" class="panel">
+    <p class="hint-info">Pusat kendali admin: pantau pengiriman (kiriman yang melewati estimasi diberi tanda merah), moderasi iklan & voucher toko, hapus ulasan yang tidak pantas, dan pantau chat penjual-pembeli.</p>
+    <div class="chips" id="mod-tab" style="margin-bottom:14px"></div>
+    <div id="mod-isi"></div>
   </section>
 
   <!-- Harga pangan (admin) -->
@@ -690,5 +698,6 @@
 <script src="../kirim.js"></script>
 <script src="../voucher.js"></script>
 <script src="../chat.js"></script>
+<script src="../admin.js"></script>
 </body>
 </html>
