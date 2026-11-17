@@ -84,6 +84,97 @@ app.get("/api/panen", async (req, res) => {
   ok(res, rows.map(withTotal), 200, `${rows.length} data panen ditemukan`);
 });
 
+// ---- Iklan produk (didefinisikan sebelum /api/panen/:id supaya "iklan" tidak dianggap id)
+const F_IKLAN = ["panen_id", "judul", "kata_kunci", "mulai", "selesai", "anggaran_harian", "status"];
+function cekIklan(b, parsial) {
+  const out = {};
+  for (const f of F_IKLAN) {
+    if (b[f] === undefined || b[f] === "") {
+      if (!parsial && !["anggaran_harian", "status"].includes(f)) return [null, `field wajib kosong: ${f}`];
+      continue;
+    }
+    let v = typeof b[f] === "string" ? b[f].trim() : b[f];
+    if ((f === "mulai" || f === "selesai") && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return [null, `${f} harus tanggal YYYY-MM-DD`];
+    if (f === "anggaran_harian") { v = parseInt(v, 10); if (!(v >= 5000 && v <= 10000000)) return [null, "anggaran harian Rp5.000 sampai Rp10.000.000"]; }
+    if (f === "status" && !["Aktif", "Dijeda"].includes(v)) return [null, "status harus Aktif atau Dijeda"];
+    if (f === "judul" && String(v).length > 80) return [null, "judul iklan maksimal 80 karakter"];
+    if (f === "kata_kunci" && String(v).length > 200) return [null, "kata kunci maksimal 200 karakter"];
+    if (f === "panen_id") v = parseInt(v, 10);
+    out[f] = v;
+  }
+  if (out.mulai && out.selesai && out.selesai < out.mulai) return [null, "tanggal selesai tidak boleh sebelum tanggal mulai"];
+  return [out, null];
+}
+const ctr = (r) => ({ ...r, ctr_persen: r.tayang ? Math.round((r.klik / r.tayang) * 1000) / 10 : 0,
+  berjalan: r.status === "Aktif" && r.mulai <= hariIni() && r.selesai >= hariIni() });
+
+app.get("/api/panen/iklan", async (req, res) => {
+  const u = pengguna(req);
+  if (!u || u.role === "pembeli") return err(res, "hanya penjual dan admin", 403);
+  const [rows] = await pool.query(
+    `SELECT i.*, p.nama_produk, p.komoditas, p.foto FROM iklan i JOIN panen p ON p.id = i.panen_id ${u.role === "penjual" ? "WHERE i.penjual_id = ?" : ""} ORDER BY i.id DESC`,
+    u.role === "penjual" ? [u.id] : []);
+  ok(res, rows.map(ctr), 200, `${rows.length} iklan`);
+});
+
+// Iklan yang sedang tayang (untuk slot "Bersponsor" di halaman Belanja). ?q= mencocokkan kata kunci/nama produk
+app.get("/api/panen/iklan/tayang", async (req, res) => {
+  const q = String(req.query.q || "").trim().toLowerCase();
+  const [rows] = await pool.query(
+    `SELECT i.id, i.panen_id, i.judul, i.kata_kunci, p.nama_produk, p.komoditas FROM iklan i JOIN panen p ON p.id = i.panen_id
+     WHERE i.status = 'Aktif' AND i.mulai <= CURDATE() AND i.selesai >= CURDATE() ORDER BY i.anggaran_harian DESC, i.id`);
+  const cocok = rows.filter((r) => !q || [r.kata_kunci, r.nama_produk, r.komoditas, r.judul].join(" ").toLowerCase().includes(q)).slice(0, 4);
+  if (cocok.length) await pool.query(`UPDATE iklan SET tayang = tayang + 1 WHERE id IN (${cocok.map(() => "?").join(",")})`, cocok.map((r) => r.id));
+  ok(res, cocok, 200, `${cocok.length} iklan tayang`);
+});
+
+app.post("/api/panen/iklan/:id/klik", async (req, res) => {
+  const [r] = await pool.query("UPDATE iklan SET klik = klik + 1 WHERE id = ?", [req.params.id]);
+  return r.affectedRows ? ok(res, { id: Number(req.params.id) }, 200, "klik dicatat") : err(res, "iklan tidak ditemukan", 404);
+});
+
+app.post("/api/panen/iklan", async (req, res) => {
+  const u = pengguna(req);
+  if (!u || u.role !== "penjual") return err(res, "hanya penjual yang bisa memasang iklan", 403);
+  const [d, e] = cekIklan(req.body || {}, false);
+  if (e) return err(res, e, 400);
+  const [p] = await pool.query("SELECT * FROM panen WHERE id = ?", [d.panen_id]);
+  if (!p.length || p[0].pemilik_id !== u.id) return err(res, "produk tidak ditemukan atau bukan milik anda", 403);
+  const [[{ n }]] = await pool.query("SELECT COUNT(*) n FROM iklan WHERE penjual_id = ? AND status = 'Aktif' AND selesai >= CURDATE()", [u.id]);
+  if (n >= 3) return err(res, "maksimal 3 iklan aktif per toko; jeda atau hapus iklan lain dulu", 422);
+  const cols = Object.keys(d);
+  const [r] = await pool.query(`INSERT INTO iklan (${cols.join(",")}, penjual_id) VALUES (${cols.map(() => "?").join(",")}, ?)`, [...cols.map((c) => d[c]), u.id]);
+  const [rows] = await pool.query("SELECT * FROM iklan WHERE id = ?", [r.insertId]);
+  ok(res, ctr(rows[0]), 201, "iklan dipasang");
+});
+
+app.put("/api/panen/iklan/:id", async (req, res) => {
+  const u = pengguna(req);
+  const [lama] = await pool.query("SELECT * FROM iklan WHERE id = ?", [req.params.id]);
+  if (!lama.length) return err(res, `iklan id ${req.params.id} tidak ditemukan`, 404);
+  if (!u || !(u.role === "admin" || lama[0].penjual_id === u.id)) return err(res, "anda hanya boleh mengubah iklan sendiri", 403);
+  const [d, e] = cekIklan(req.body || {}, true);
+  if (e) return err(res, e, 400);
+  if (d.panen_id) {
+    const [p] = await pool.query("SELECT pemilik_id FROM panen WHERE id = ?", [d.panen_id]);
+    if (!p.length || p[0].pemilik_id !== lama[0].penjual_id) return err(res, "produk bukan milik toko ini", 403);
+  }
+  if (!Object.keys(d).length) return err(res, "tidak ada data yang diubah", 400);
+  if ((d.mulai || lama[0].mulai) > (d.selesai || lama[0].selesai)) return err(res, "tanggal selesai tidak boleh sebelum tanggal mulai", 400);
+  await pool.query(`UPDATE iklan SET ${Object.keys(d).map((k) => k + " = ?").join(", ")} WHERE id = ?`, [...Object.values(d), req.params.id]);
+  const [rows] = await pool.query("SELECT * FROM iklan WHERE id = ?", [req.params.id]);
+  ok(res, ctr(rows[0]), 200, d.status === "Dijeda" ? "iklan dijeda" : "iklan diperbarui");
+});
+
+app.delete("/api/panen/iklan/:id", async (req, res) => {
+  const u = pengguna(req);
+  const [lama] = await pool.query("SELECT * FROM iklan WHERE id = ?", [req.params.id]);
+  if (!lama.length) return err(res, `iklan id ${req.params.id} tidak ditemukan`, 404);
+  if (!u || !(u.role === "admin" || lama[0].penjual_id === u.id)) return err(res, "anda hanya boleh menghapus iklan sendiri", 403);
+  await pool.query("DELETE FROM iklan WHERE id = ?", [req.params.id]);
+  ok(res, { id: Number(req.params.id) }, 200, "iklan dihapus");
+});
+
 app.get("/api/panen/:id", async (req, res) => {
   const [rows] = await pool.query("SELECT * FROM panen WHERE id = ?", [req.params.id]);
   if (!rows.length) return err(res, `panen id ${req.params.id} tidak ditemukan`, 404);

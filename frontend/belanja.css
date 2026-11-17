@@ -231,3 +231,10 @@ i[class^="logo-"]{display:inline-grid;place-items:center;width:30px;height:30px;
 .ul-pilih input:focus-visible+label{outline:2px solid var(--green);border-radius:6px}
 #dlg-ulasan{width:min(480px,calc(100% - 32px))}
 .ul-tombol{border-color:#e0a526;color:#9a6c10}
+
+/* ---- Iklan / Bersponsor */
+.mp-kartu.sponsor{border-color:#e0a526;box-shadow:0 0 0 2px rgba(224,165,38,.18)}
+.mp-iklan{display:inline-block;justify-self:start;font:700 .66rem var(--sans);letter-spacing:.04em;color:#8a5d00;background:#fdf1d3;border-radius:6px;padding:2px 6px;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-iklan .cards{grid-template-columns:repeat(5,1fr)}
+@media (max-width:860px){#tab-iklan .cards{grid-template-columns:1fr 1fr}}

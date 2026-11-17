@@ -166,6 +166,7 @@
     <div class="mp-cari"><span>🔍</span><input id="mp-cari" type="search" placeholder="Cari cabai, beras, jagung, kota, atau toko…" autocomplete="off"></div>
     <div class="mp-banner" id="mp-banner"></div>
     <div class="mp-kategori" id="mp-kategori"></div>
+    <div id="mp-blok-sponsor" hidden><h2>📣 Bersponsor</h2><div class="mp-baris" id="mp-sponsor"></div></div>
     <div id="mp-blok-unggulan"><h2>🔥 Promo &amp; unggulan</h2><div class="mp-baris" id="mp-unggulan"></div></div>
     <h2 id="mp-judul-grid">Semua produk</h2>
     <div class="mp-grid" id="mp-grid"></div>
@@ -197,6 +198,17 @@
         </form>
       </div>
     </div>
+  </section>
+
+  <!-- Iklan saya (penjual) -->
+  <section id="tab-iklan" class="panel">
+    <p class="hint-info">Iklan membuat produk tampil paling atas di halaman Belanja (label <b>Iklan</b>) saat pembeli mencari kata kunci yang cocok. Biaya di sini <b>simulasi</b>, tidak ada tagihan sungguhan. Maksimal 3 iklan aktif per toko.</p>
+    <div class="cards" id="ik-stat"></div>
+    <div class="toolbar" style="margin-top:16px"><span></span><button class="btn primary" id="tambah-iklan">+ Pasang Iklan</button></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Iklan / Produk</th><th>Kata kunci</th><th>Periode</th><th class="num">Anggaran/hari</th><th class="num">Tayang</th><th class="num">Klik</th><th class="num">CTR</th><th>Status</th><th></th></tr></thead>
+      <tbody id="tbl-iklan"></tbody>
+    </table></div>
   </section>
 
   <!-- Toko saya (penjual) -->
@@ -497,6 +509,20 @@
   </div>
 </dialog>
 
+<dialog id="dlg-iklan">
+  <form method="dialog" id="form-iklan">
+    <h3 id="judul-iklan">Pasang Iklan</h3>
+    <input type="hidden" name="id">
+    <label>Produk yang diiklankan<select name="panen_id" required></select></label>
+    <label>Judul iklan<input name="judul" required maxlength="80" placeholder="mis. Cabai segar petik pagi, kirim ke seluruh Indonesia"></label>
+    <label>Kata kunci (pisahkan dengan koma)<input name="kata_kunci" required maxlength="200" placeholder="cabai, cabe merah, sambal"></label>
+    <div class="row"><label>Mulai<input name="mulai" type="date" required></label><label>Selesai<input name="selesai" type="date" required></label></div>
+    <label>Anggaran harian (Rp, simulasi)<input name="anggaran_harian" type="number" min="5000" step="1000" required></label>
+    <p class="hint" id="ik-estimasi"></p>
+    <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Simpan iklan</button></div>
+  </form>
+</dialog>
+
 <dialog id="dlg-harga">
   <form method="dialog" id="form-harga">
     <h3 id="judul-harga">Tambah Harga Pangan</h3>
@@ -578,5 +604,6 @@
 <script src="../belanja.js"></script>
 <script src="../keranjang.js"></script>
 <script src="../ulasan.js"></script>
+<script src="../iklan.js"></script>
 </body>
 </html>

@@ -55,6 +55,7 @@ function renderBeranda() {
     (!q || [p.nama_produk, p.komoditas, p.toko, p.kota, p.provinsi].join(" ").toLowerCase().includes(q)));
   $("#mp-judul-grid").textContent = B.kategori ? `Kategori ${B.kategori}` : q ? `Hasil pencarian "${B.cari}"` : "Semua produk";
   $("#mp-grid").innerHTML = daftar.map(kartuProduk).join("") || `<p class="empty">Produk tidak ditemukan.</p>`;
+  muatSponsor();
 }
 $("#mp-cari").addEventListener("input", (e) => { B.cari = e.target.value.trim(); renderBeranda(); });
 

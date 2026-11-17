@@ -21,6 +21,7 @@ services:
       - ./database/produk.sql:/docker-entrypoint-initdb.d/06-produk.sql:ro
       - ./database/checkout.sql:/docker-entrypoint-initdb.d/07-checkout.sql:ro
       - ./database/ulasan.sql:/docker-entrypoint-initdb.d/08-ulasan.sql:ro
+      - ./database/iklan.sql:/docker-entrypoint-initdb.d/09-iklan.sql:ro
     networks:
       - tani-net
     healthcheck:
