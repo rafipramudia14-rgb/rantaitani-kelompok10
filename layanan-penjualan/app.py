@@ -358,6 +358,8 @@ def delete_penjualan(sid):
             return err("pembeli tidak menghapus transaksi; gunakan Batalkan (POST /api/penjualan/{id}/batal)", 403)
         if not boleh_kelola(u, row):
             return err("anda hanya boleh menghapus penjualan milik sendiri", 403)
+        cur.execute("DELETE FROM riwayat_kirim WHERE penjualan_id=%s", (sid,))
+        cur.execute("DELETE FROM ulasan WHERE penjualan_id=%s", (sid,))
         cur.execute("DELETE FROM penjualan WHERE id=%s", (sid,))
     return ok({"id": sid}, message="penjualan berhasil dihapus")
 

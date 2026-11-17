@@ -1,4 +1,4 @@
-"""RantaiTani - Layanan Bantuan (Flask): chatbot asisten berbasis aturan (tanpa AI berbayar, jalan offline).
+"""TaniMart - Layanan Bantuan (Flask): chatbot asisten berbasis aturan + chat penjual-pembeli (percakapan.py, db_bantuan).
 
 - POST /api/bantuan/chat     -> untuk pengguna yang login (identitas dari gateway: X-User-*)
 - POST /api/bantuan/publik   -> untuk halaman login (tanpa token)
@@ -14,6 +14,8 @@ from urllib.parse import unquote
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
+from percakapan import bp as percakapan_bp  # noqa: E402
+app.register_blueprint(percakapan_bp)
 PENJUALAN_URL = os.getenv("PENJUALAN_SERVICE_URL", "http://layanan-penjualan:5000")
 SVC = "layanan-bantuan"
 

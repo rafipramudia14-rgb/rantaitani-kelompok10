@@ -41,6 +41,35 @@ def login(u, p):
 
 
 A, D, S, R = login("admin", "admin123"), login("darto", "petani123"), login("siti", "petani123"), login("rina", "pembeli123")
+
+
+def bersihkan_sisa_uji():
+    """Hapus data "UJI ..." yang tertinggal kalau run sebelumnya berhenti di tengah jalan."""
+    for lh in req("GET", "/api/lahan", token=D)[1].get("data", []):
+        if lh["nama_lahan"].startswith("UJI"):
+            for pn in req("GET", f"/api/panen?lahan_id={lh['id']}", token=D)[1].get("data", []):
+                for jl in req("GET", f"/api/penjualan?panen_id={pn['id']}", token=A)[1].get("data", []):
+                    req("DELETE", f"/api/penjualan/{jl['id']}", token=A)
+                for ik in req("GET", "/api/panen/iklan", token=D)[1].get("data", []):
+                    if ik["panen_id"] == pn["id"]:
+                        req("DELETE", f"/api/panen/iklan/{ik['id']}", token=D)
+                req("DELETE", f"/api/panen/{pn['id']}", token=D)
+            req("DELETE", f"/api/lahan/{lh['id']}", token=D)
+    for h in req("GET", "/api/info/harga", token=A)[1].get("data", []):
+        if h["komoditas"].startswith("UJI"):
+            req("DELETE", f"/api/info/harga/{h['id']}", token=A)
+    for u in req("GET", "/api/auth/users", token=A)[1].get("data", []):
+        if u["username"] == "uji_akun_tes":
+            req("DELETE", f"/api/auth/users/{u['id']}", token=A)
+    for v in req("GET", "/api/penjualan/voucher", token=A)[1].get("data", []):
+        if v["kode"].startswith("UJIVCR"):
+            req("DELETE", f"/api/penjualan/voucher/{v['id']}", token=A)
+    for p in req("GET", "/api/bantuan/percakapan", token=A)[1].get("data", []):
+        if p["pembeli_id"] == 5 and p["penjual_id"] == 2:
+            req("DELETE", f"/api/bantuan/percakapan/{p['id']}", token=A)
+
+
+bersihkan_sisa_uji()
 cek("login password salah ditolak", req("POST", "/api/auth/login", {"username": "admin", "password": "x"})[0], 401)
 cek("akses tanpa token ditolak gateway", req("GET", "/api/lahan")[0], 401)
 for s in ("auth", "lahan", "panen", "penjualan", "bantuan", "info"):
@@ -151,6 +180,18 @@ cek("rating di luar 1-5 ditolak (400)", req("POST", f"/api/penjualan/{sid}/ulasa
 _, j = req("GET", f"/api/penjualan/ulasan?panen_id={pid}", token=R)
 for x in j.get("data", []):
     req("DELETE", f"/api/penjualan/ulasan/{x['id']}", token=A)
+k, j = req("POST", "/api/bantuan/percakapan", {"penjual_id": 2, "panen_id": pid}, R)
+cek("pembeli mulai chat ke penjual", k, 201)
+cid = j.get("data", {}).get("id")
+k, j = req("POST", f"/api/bantuan/percakapan/{cid}/pesan", {"isi": "UJI halo"}, R)
+cek("kirim pesan chat", k, 201)
+mid = j.get("data", {}).get("id")
+cek("penjual baca chat", req("GET", f"/api/bantuan/percakapan/{cid}/pesan", token=D)[0], 200)
+cek("penjual lain tidak bisa baca chat (403)", req("GET", f"/api/bantuan/percakapan/{cid}/pesan", token=S)[0], 403)
+cek("ubah pesan sendiri", req("PUT", f"/api/bantuan/pesan/{mid}", {"isi": "UJI halo (ubah)"}, R)[0], 200)
+cek("hapus pesan sendiri", req("DELETE", f"/api/bantuan/pesan/{mid}", token=R)[0], 200)
+cek("admin hapus percakapan uji", req("DELETE", f"/api/bantuan/percakapan/{cid}", token=A)[0], 200)
+cek("penjual tidak bisa memulai chat (403)", req("POST", "/api/bantuan/percakapan", {"penjual_id": 3}, D)[0], 403)
 cek("estimasi per kota", req("GET", "/api/info/publik/estimasi?asal=JAWA%20BARAT&tujuan=KALIMANTAN%20TIMUR&ton=0.002&kota_asal=3204&kota_tujuan=6471")[0], 200)
 cek("daftar kota", req("GET", "/api/info/publik/kota?provinsi=BALI")[0], 200)
 

@@ -716,6 +716,7 @@ async function refresh() {
   tandaiKeranjang();
   muatIklan();
   muatVoucher();
+  muatChat();
 }
 
 // ---------------- Chatbot asisten (layanan-bantuan)

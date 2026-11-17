@@ -73,7 +73,7 @@ async function bukaProduk(pid) {
   $("#ck-harga").innerHTML = `${rp(p.harga_per_kg)}<small>/kg</small>${p.promo_aktif ? ` <s>${rp(p.harga_normal)}</s> <span class="mp-diskon dalam">-${p.diskon_persen}%</span>` : ""}`;
   $("#ck-desk").textContent = p.deskripsi || `${p.komoditas} kualitas ${p.kualitas}, dipanen ${p.tanggal_panen}.`;
   $("#ck-info").innerHTML = `<span>Stok <b>${berat(p.sisa_kg)}</b></span><span>Kualitas <b>${esc(p.kualitas)}</b></span><span>Dipanen <b>${esc(p.tanggal_panen)}</b></span>`;
-  $("#ck-toko").innerHTML = `<div class="ck-toko-ikon">${ikonOf(p.komoditas)}</div><div><b>${esc(p.toko)}</b> <span class="mp-cek">✓ Terverifikasi</span><br><small>📍 ${esc(p.kota)}, ${esc(judulP(p.provinsi))}</small></div><button type="button" class="btn sm tk-masuk" data-buka-toko="${p.toko_id}">Kunjungi toko</button>`;
+  $("#ck-toko").innerHTML = `<div class="ck-toko-ikon">${ikonOf(p.komoditas)}</div><div><b>${esc(p.toko)}</b> <span class="mp-cek">✓ Terverifikasi</span><br><small>📍 ${esc(p.kota)}, ${esc(judulP(p.provinsi))}</small></div><span class="tk-masuk"><button type="button" class="btn sm" data-mulai-chat="${p.penjual_id}" data-panen="${p.panen_id}">💬 Chat penjual</button><button type="button" class="btn sm" data-buka-toko="${p.toko_id}">Kunjungi toko</button></span>`;
   f.alamat_kirim.value = B.profil.alamat || "";
   f.no_hp_penerima.value = B.profil.no_hp || "";
   await pasangPilihKota(f.provinsi_tujuan, f.kota_tujuan_id, B.profil.provinsi, B.profil.kota_id);
@@ -257,6 +257,7 @@ $("#notif-btn").addEventListener("click", async (e) => {
 document.addEventListener("click", (e) => { if (!e.target.closest("#notif-panel")) $("#notif-panel").hidden = true; });
 $("#notif-daftar").addEventListener("click", (e) => {
   const t = e.target.closest("li")?.dataset.tautan;
+  if (t === "chat") { $("#notif-panel").hidden = true; return bukaChat(); }
   const ke = { pesanan: role() === "pembeli" ? "pesanan" : "penjualan", toko: "toko", akun: "akun" }[t];
   if (ke && MENU[role()].some(([k]) => k === ke)) { bukaTab(ke); $("#notif-panel").hidden = true; }
 });

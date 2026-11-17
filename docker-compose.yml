@@ -10,6 +10,7 @@ services:
     container_name: rantaitani-db
     restart: unless-stopped
     environment:
+      TZ: Asia/Jakarta                                 # zona waktu WIB
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql                        # storage persisten
@@ -24,6 +25,7 @@ services:
       - ./database/iklan.sql:/docker-entrypoint-initdb.d/09-iklan.sql:ro
       - ./database/pengiriman.sql:/docker-entrypoint-initdb.d/10-pengiriman.sql:ro
       - ./database/voucher.sql:/docker-entrypoint-initdb.d/11-voucher.sql:ro
+      - ./database/chat.sql:/docker-entrypoint-initdb.d/12-chat.sql:ro
     networks:
       - tani-net
     healthcheck:
@@ -39,6 +41,7 @@ services:
     container_name: rantaitani-auth
     restart: unless-stopped
     environment:
+      TZ: Asia/Jakarta                                 # zona waktu WIB
       DB_HOST: db
       DB_USER: ${AUTH_DB_USER}
       DB_PASSWORD: ${AUTH_DB_PASSWORD}
@@ -56,6 +59,7 @@ services:
     container_name: rantaitani-lahan
     restart: unless-stopped
     environment:
+      TZ: Asia/Jakarta                                 # zona waktu WIB
       DB_HOST: db
       DB_USER: ${LAHAN_DB_USER}
       DB_PASSWORD: ${LAHAN_DB_PASSWORD}
@@ -72,6 +76,7 @@ services:
     container_name: rantaitani-panen
     restart: unless-stopped
     environment:
+      TZ: Asia/Jakarta                                 # zona waktu WIB
       DB_HOST: db
       DB_USER: ${PANEN_DB_USER}
       DB_PASSWORD: ${PANEN_DB_PASSWORD}
@@ -93,6 +98,7 @@ services:
     container_name: rantaitani-penjualan
     restart: unless-stopped
     environment:
+      TZ: Asia/Jakarta                                 # zona waktu WIB
       DB_HOST: db
       DB_USER: ${PENJUALAN_DB_USER}
       DB_PASSWORD: ${PENJUALAN_DB_PASSWORD}
@@ -114,9 +120,18 @@ services:
     container_name: rantaitani-bantuan
     restart: unless-stopped
     environment:
+      TZ: Asia/Jakarta                                 # zona waktu WIB
       PENJUALAN_SERVICE_URL: http://layanan-penjualan:5000   # cek status pembayaran pengguna
+      AUTH_SERVICE_URL: http://layanan-auth:3000             # nama toko & notifikasi chat
+      DB_HOST: db
+      DB_USER: ${BANTUAN_DB_USER}
+      DB_PASSWORD: ${BANTUAN_DB_PASSWORD}
+      DB_NAME: db_bantuan                                    # riwayat chat penjual-pembeli
     depends_on:
-      - layanan-penjualan
+      db:
+        condition: service_healthy
+      layanan-penjualan:
+        condition: service_started
     networks:
       - tani-net
 
@@ -126,6 +141,7 @@ services:
     container_name: rantaitani-info
     restart: unless-stopped
     environment:
+      TZ: Asia/Jakarta                                 # zona waktu WIB
       DB_HOST: db
       DB_USER: ${INFO_DB_USER}
       DB_PASSWORD: ${INFO_DB_PASSWORD}

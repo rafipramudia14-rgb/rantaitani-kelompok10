@@ -118,7 +118,8 @@ async function bukaToko2(tokoId) {
       ${t?.deskripsi ? `<p class="tk-desk">${esc(t.deskripsi)}</p>` : ""}</div>
     <dl class="tk-angka">${produk[0]?.rating_toko ? `<div><dt>Rating</dt><dd>★ ${produk[0].rating_toko} (${produk[0].ulasan_toko})</dd></div>` : ""}<div><dt>Produk</dt><dd>${produk.length}</dd></div><div><dt>Terjual</dt><dd>${berat(terjual)}</dd></div>
       ${t ? `<div><dt>Luas lahan</dt><dd>${kg(t.luas_lahan_ha)} ha</dd></div><div><dt>Hasil/panen</dt><dd>${berat(t.hasil_per_panen_kg)}</dd></div>` : ""}</dl>
-    ${t?.kontak ? `<p class="tk-kontak">📞 ${esc(t.kontak)} · komoditas utama ${esc(t.komoditas_utama)}</p>` : ""}`;
+    ${t?.kontak ? `<p class="tk-kontak">📞 ${esc(t.kontak)} · komoditas utama ${esc(t.komoditas_utama)}</p>` : ""}
+    ${role() === "pembeli" ? `<button type="button" class="btn sm terang tk-chat" data-mulai-chat="${t?.user_id || produk[0]?.penjual_id}">💬 Chat penjual</button>` : ""}`;
   $("#tk-produk").innerHTML = produk.map(kartuProduk).join("") || `<p class="empty">Toko ini belum punya produk dengan stok.</p>`;
   $("#tk-voucher").innerHTML = "";
   $("#dlg-toko2").showModal();

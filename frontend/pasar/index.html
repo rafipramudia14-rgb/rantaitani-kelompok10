@@ -58,6 +58,7 @@
     <span class="brand-text">TaniMart<small>Pasar Hasil Tani</small></span>
   </div>
   <nav class="tabs" id="tabs"></nav>
+  <button class="notif-btn" id="chat2-btn" type="button" aria-label="Chat" title="Chat" hidden>💬<span id="chat2-jml" hidden></span></button>
   <button class="notif-btn" id="keranjang-btn" type="button" aria-label="Keranjang" hidden>🛒<span id="keranjang-jml" hidden></span></button>
   <div class="notif">
     <button class="notif-btn" id="notif-btn" type="button" aria-label="Notifikasi">🔔<span id="notif-jml" hidden></span></button>
@@ -587,6 +588,23 @@
   </form>
 </dialog>
 
+<dialog id="dlg-chat2" class="dlg-lebar">
+  <div class="ch-wadah">
+    <aside class="ch-kiri"><div class="ch-judul"><b>💬 Chat</b><button type="button" class="btn sm" data-close>Tutup</button></div><ul class="ch-daftar" id="ch-daftar"></ul></aside>
+    <section class="ch-kanan">
+      <div class="ch-kepala" id="ch-kepala"></div>
+      <div class="ch-isi" id="ch-isi"></div>
+      <form id="form-ch" class="ch-form" hidden>
+        <select id="ch-templat" aria-label="Pesan cepat"><option value="">⚡ Pesan cepat…</option>
+          <option>Halo, stoknya masih ada?</option><option>Bisa kirim hari ini?</option><option>Bisa nego untuk pembelian partai besar?</option>
+          <option>Terima kasih, pesanan sudah saya bayar.</option><option>Stok masih tersedia, silakan dipesan.</option><option>Pesanan sudah dikirim, nomor resi ada di Pesanan Saya.</option></select>
+        <input name="isi" maxlength="1000" placeholder="Tulis pesan…" autocomplete="off">
+        <button class="btn primary">Kirim</button>
+      </form>
+    </section>
+  </div>
+</dialog>
+
 <dialog id="dlg-harga">
   <form method="dialog" id="form-harga">
     <h3 id="judul-harga">Tambah Harga Pangan</h3>
@@ -671,5 +689,6 @@
 <script src="../iklan.js"></script>
 <script src="../kirim.js"></script>
 <script src="../voucher.js"></script>
+<script src="../chat.js"></script>
 </body>
 </html>

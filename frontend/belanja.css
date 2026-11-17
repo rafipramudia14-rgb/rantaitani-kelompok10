@@ -273,3 +273,34 @@ i[class^="logo-"]{display:inline-grid;place-items:center;width:30px;height:30px;
 .v-kode{font:700 .85rem var(--sans);letter-spacing:.06em;background:#fdf1d3;color:#8a5d00;border:1px dashed #c9a24d;border-radius:8px;padding:3px 8px}
 .v-bar{height:4px;background:var(--line);border-radius:3px;margin-top:4px;overflow:hidden}.v-bar i{display:block;height:100%;background:var(--gold)}
 #dlg-voucher{width:min(560px,calc(100% - 32px))}
+
+/* ---- Chat penjual-pembeli */
+#chat2-btn{position:relative;flex:none}
+.tk-masuk{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.tk-chat{grid-column:1/-1;justify-self:start}
+#dlg-chat2{padding:0;overflow:hidden}
+.ch-wadah{display:grid;grid-template-columns:300px 1fr;height:min(620px,82vh)}
+.ch-kiri{border-right:1px solid var(--line);display:flex;flex-direction:column;background:#faf7ef;min-height:0}
+.ch-judul{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);font:700 1.05rem var(--display)}
+.ch-daftar{list-style:none;margin:0;padding:6px;overflow-y:auto;display:grid;gap:4px;align-content:start}
+.ch-daftar li{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:10px;border-radius:12px;cursor:pointer}
+.ch-daftar li:hover{background:#fff}.ch-daftar li.aktif{background:#fff;box-shadow:var(--shadow)}
+.ch-daftar li div{display:grid;min-width:0}.ch-daftar small{color:var(--muted);font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-daftar li.kosong{display:block;color:var(--muted);font-size:.85rem;cursor:default}
+.ch-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--gold));color:#fff;display:grid;place-items:center;font-weight:700}
+.ch-n{background:var(--red);color:#fff;border-radius:99px;font:700 .7rem var(--sans);padding:2px 7px}
+.ch-kanan{display:flex;flex-direction:column;min-height:0}
+.ch-kepala{padding:14px 18px;border-bottom:1px solid var(--line);font-size:.92rem;min-height:52px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ch-kepala small{color:var(--muted)}
+.ch-isi{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background:#f6f2e8}
+.ch-kosong{color:var(--muted);text-align:center;margin:auto;font-size:.88rem}
+.ch-baris{display:flex;align-items:flex-end;gap:6px;max-width:80%}
+.ch-baris.saya{align-self:flex-end;flex-direction:row-reverse}
+.ch-bubble{background:#fff;border:1px solid var(--line);border-radius:16px 16px 16px 4px;padding:8px 12px;font-size:.9rem;line-height:1.45;display:grid;gap:2px;word-break:break-word}
+.ch-baris.saya .ch-bubble{background:var(--green);color:#fff;border-color:var(--green);border-radius:16px 16px 4px 16px}
+.ch-waktu{font-size:.68rem;opacity:.7;justify-self:end}.ch-nama{font-weight:700;color:var(--amber)}
+.ch-aksi{display:none;gap:2px}.ch-baris:hover .ch-aksi{display:flex}
+.ch-aksi button{border:0;background:none;cursor:pointer;font-size:.85rem;opacity:.7}
+.ch-form{display:grid;grid-template-columns:170px 1fr auto;gap:8px;padding:12px;border-top:1px solid var(--line);background:#fff}
+.ch-form select,.ch-form input{border-radius:999px}
+@media (max-width:760px){.ch-wadah{grid-template-columns:1fr;grid-template-rows:180px 1fr}.ch-kiri{border-right:0;border-bottom:1px solid var(--line)}.ch-form{grid-template-columns:1fr auto}.ch-form select{grid-column:1/-1}}
