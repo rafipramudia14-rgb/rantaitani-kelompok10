@@ -148,6 +148,12 @@ cek("lupa password email tak terdaftar (404)", k, 404)
 cek("unggah foto bukan gambar ditolak (400)", req("POST", f"/api/panen/{pid}/foto", {"gambar": "data:image/png;base64,SGVsbG8="}, D)[0], 400)
 PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
 cek("unggah foto produk", req("POST", f"/api/panen/{pid}/foto", {"gambar": PNG}, D)[0], 200)
+for i in range(5):
+    kg_, jg_ = req("POST", f"/api/panen/{pid}/galeri", {"gambar": PNG}, D)
+cek("galeri berisi 5 foto", 200 if kg_ == 201 and len(jg_["data"]["galeri"]) == 5 else kg_, 200)
+cek("galeri foto ke-6 ditolak (422)", req("POST", f"/api/panen/{pid}/galeri", {"gambar": PNG}, D)[0], 422)
+cek("hapus foto galeri", req("DELETE", f"/api/panen/{pid}/galeri/0", token=D)[0], 200)
+cek("penjual lain tambah galeri (403)", req("POST", f"/api/panen/{pid}/galeri", {"gambar": PNG}, S)[0], 403)
 cek("promo lebih mahal ditolak (400)", req("PUT", f"/api/panen/{pid}", {"harga_promo": 999999}, D)[0], 400)
 cek("set promo", req("PUT", f"/api/panen/{pid}", {"harga_promo": 5500, "unggulan": 1}, D)[0], 200)
 k, j = req("POST", "/api/penjualan", {"panen_id": pid, "jumlah_kg": 2, "metode_bayar": "GoPay"}, R)

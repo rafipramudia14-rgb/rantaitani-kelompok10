@@ -69,6 +69,8 @@ async function bukaProduk(pid) {
   const f = $("#form-checkout");
   f.reset(); f.satuan.value = "kg"; f.jumlah.value = 1;
   $("#ck-foto").innerHTML = fotoProduk(p, true);
+  const semua = [p.foto, ...(p.galeri || [])].filter(Boolean);
+  $("#ck-galeri").innerHTML = semua.length > 1 ? semua.map((g, i) => `<button type="button" class="${i ? "" : "aktif"}" data-galeri="${esc(g)}"><img src="${esc(g)}" alt="foto ${i + 1}"></button>`).join("") : "";
   $("#ck-nama").textContent = p.nama_produk;
   $("#ck-harga").innerHTML = `${rp(p.harga_per_kg)}<small>/kg</small>${p.promo_aktif ? ` <s>${rp(p.harga_normal)}</s> <span class="mp-diskon dalam">-${p.diskon_persen}%</span>` : ""}`;
   $("#ck-desk").textContent = p.deskripsi || `${p.komoditas} kualitas ${p.kualitas}, dipanen ${p.tanggal_panen}.`;
@@ -298,3 +300,11 @@ document.addEventListener("click", (e) => {
   if (t.dataset.salin) { navigator.clipboard?.writeText(t.dataset.salin).then(() => toast("Nomor VA disalin")).catch(() => {}); }
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.dataset?.produk) bukaProduk(e.target.dataset.produk); });
+
+// Galeri: klik thumbnail untuk mengganti foto besar
+document.addEventListener("click", (e) => {
+  const g = e.target.closest("[data-galeri]");
+  if (!g) return;
+  $("#ck-foto").innerHTML = `<img src="${esc(g.dataset.galeri)}" alt="foto produk">`;
+  document.querySelectorAll("#ck-galeri button").forEach((b) => b.classList.toggle("aktif", b === g));
+});

@@ -237,6 +237,7 @@ function bukaPanen(p) {
   f.id.value = p?.id || "";
   if (p) { ["lahan_id", "tanggal_panen", "komoditas", "kualitas", "harga_per_kg", "catatan", "nama_produk", "deskripsi", "harga_promo", "promo_sampai"].forEach((k) => (f[k].value = p[k] ?? "")); isiJumlah(f, p.jumlah_kg); f.unggulan.checked = !!p.unggulan; }
   else { f.tanggal_panen.value = hariIni(); f.komoditas.value = lahanList[0].komoditas; }
+  $("#galeri-penjual").innerHTML = (p?.galeri || []).map((g, i) => `<span><img src="${esc(g)}" alt=""><button type="button" data-hapus-galeri="${i}" data-id="${p.id}" title="Hapus">×</button></span>`).join("");
   $("#foto-pratinjau").innerHTML = p?.foto ? `<img src="${esc(p.foto)}" alt=""> <button type="button" class="btn sm danger" data-hapus-foto="${p.id}">Hapus foto</button>` : "";
   $("#dlg-panen").showModal();
 }
@@ -251,10 +252,12 @@ $("#form-panen").addEventListener("submit", async (e) => {
   body.jumlah_kg = keKg(e.target); delete body.jumlah; delete body.satuan;
   ["lahan_id", "harga_per_kg"].forEach((k) => (body[k] = Number(body[k])));
   body.unggulan = e.target.unggulan.checked ? 1 : 0;
-  const file = e.target.foto.files[0]; delete body.foto;
+  const file = e.target.foto.files[0]; delete body.foto; delete body.galeri;
   try {
     const r = await api(id ? "PUT" : "POST", "/api/panen" + (id ? "/" + id : ""), body);
     if (file) await api("POST", `/api/panen/${r.data.id}/foto`, { gambar: await kecilkanFoto(file) });
+    const tambahan = [...e.target.galeri.files].slice(0, 5);
+    for (const g of tambahan) await api("POST", `/api/panen/${r.data.id}/galeri`, { gambar: await kecilkanFoto(g) });
     $("#dlg-panen").close(); toast(file ? "Produk & foto tersimpan" : r.message); refresh();
   } catch (err) { toast(err.message, true); }
 });
@@ -281,6 +284,11 @@ $("#form-panen").foto.addEventListener("change", async (e) => {
   if (f) $("#foto-pratinjau").innerHTML = `<img src="${URL.createObjectURL(f)}" alt=""> <small>akan diunggah saat disimpan</small>`;
 });
 document.addEventListener("click", async (e) => {
+  const gi = e.target.dataset?.hapusGaleri;
+  if (gi !== undefined && confirm("Hapus foto galeri ini?")) {
+    try { toast((await api("DELETE", `/api/panen/${e.target.dataset.id}/galeri/${gi}`)).message); e.target.parentElement.remove(); refresh(); } catch (err) { toast(err.message, true); }
+    return;
+  }
   const id = e.target.dataset?.hapusFoto;
   if (!id || !confirm("Hapus foto produk ini?")) return;
   try { toast((await api("DELETE", `/api/panen/${id}/foto`)).message); $("#foto-pratinjau").innerHTML = ""; refresh(); } catch (err) { toast(err.message, true); }

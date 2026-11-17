@@ -327,6 +327,8 @@
       <div class="row foto-baris"><label>Foto produk (JPG/PNG, otomatis dikecilkan)<input name="foto" type="file" accept="image/jpeg,image/png,image/webp"></label>
         <label class="cek"><input type="checkbox" name="unggulan"> Promosikan sebagai produk unggulan</label></div>
       <div class="foto-pratinjau" id="foto-pratinjau"></div>
+      <label>Foto tambahan untuk galeri (maks. 5, bisa pilih beberapa)<input name="galeri" type="file" accept="image/jpeg,image/png,image/webp" multiple></label>
+      <div class="galeri-penjual" id="galeri-penjual"></div>
     </fieldset>
     <label>Catatan<input name="catatan"></label>
     <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Simpan</button></div>
@@ -399,7 +401,7 @@
   <form id="form-checkout">
     <button type="button" class="tutup-x" data-close aria-label="Tutup">×</button>
     <div class="ck-wadah">
-      <div class="ck-kiri"><div class="ck-foto" id="ck-foto"></div><div class="ck-toko" id="ck-toko"></div></div>
+      <div class="ck-kiri"><div class="ck-foto" id="ck-foto"></div><div class="ck-galeri" id="ck-galeri"></div><div class="ck-toko" id="ck-toko"></div></div>
       <div class="ck-kanan">
         <h3 id="ck-nama"></h3>
         <p class="ck-harga" id="ck-harga"></p>

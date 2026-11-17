@@ -33,9 +33,9 @@ TaniMart punya dua bagian di satu alamat:
 | `layanan-lahan` | Flask 3 (Python 3.12) | CRUD lahan |
 | `layanan-panen` | Express 5 (Node.js 20) | CRUD panen (stok); validasi lahan ke layanan-lahan |
 | `layanan-penjualan` | Flask 3 (Python 3.12) | Katalog (hanya toko terverifikasi), jual-beli, status pesanan, QRIS simulasi |
-| `layanan-bantuan` | Flask 3 (Python 3.12) | Chatbot asisten (cek status pembayaran pengguna) |
+| `layanan-bantuan` | Flask 3 (Python 3.12) | Chatbot asisten + chat penjual-pembeli (`db_bantuan`) |
 | `layanan-info` | Flask 3 (Python 3.12) | CRUD harga pangan, produksi per provinsi, estimasi rute kirim |
-| `db` | MySQL 8.0 | 5 database terpisah: `db_auth`, `db_lahan`, `db_panen`, `db_penjualan`, `db_info` |
+| `db` | MySQL 8.0 | 6 database terpisah: `db_auth`, `db_lahan`, `db_panen`, `db_penjualan`, `db_info`, `db_bantuan` |
 
 Semua container berada di network `tani-net` (bridge). Data MySQL disimpan di volume `rantaitani-mysql-data`.
 
@@ -64,7 +64,7 @@ Login bisa memakai email atau username lama (`admin`, `darto`, `rina`, ...). Lup
 
 Perintah lain: `docker compose ps` (status), `docker compose logs -f <service>` (log), `docker compose down` (berhenti, data tetap), `docker compose down -v` (hapus beserta data).
 
-Uji API otomatis (73 skenario, data uji dihapus lagi): `python tes/uji_api.py`
+Uji API otomatis (97 skenario, data uji dihapus lagi): `python tes/uji_api.py`
 
 ## Endpoint API (melalui gateway :8090)
 
@@ -105,6 +105,18 @@ Kecuali login, register, dan `/publik`, kirim header `Authorization: Bearer <tok
 
 Ongkir dihitung dari kab/kota toko ke kab/kota pembeli. Pesanan sampai 100 kg dihitung sebagai paket ekspedisi per kg; di atas itu memakai truk, feri, atau kapal kontainer. Foto produk disimpan di volume Docker `rantaitani-uploads`.
 
+## Fitur ala marketplace (semua berupa CRUD di microservice)
+
+| Fitur | Penjual | Pembeli | Admin | Layanan |
+|---|---|---|---|---|
+| Produk + foto utama + galeri 5 foto + promo | tambah/ubah/hapus | lihat | lihat semua | layanan-panen |
+| Iklan (kata kunci, periode, anggaran simulasi, tayang/klik/CTR) | pasang/jeda/ubah/hapus, maks. 3 aktif | slot **Bersponsor** sesuai pencarian | moderasi | layanan-panen |
+| Voucher toko (persen / nominal / gratis ongkir, kuota, min. belanja) | buat/ubah/hapus | pakai saat checkout | nonaktifkan/hapus | layanan-penjualan |
+| Pengiriman (jasa kirim, pickup/antar counter, resi TMX…, riwayat perjalanan) | atur kirim, update lacak | lacak di peta | pantau, tanda telat | layanan-penjualan |
+| Chat penjual-pembeli (pesan cepat, ubah 15 menit, hapus) | balas | mulai dari produk/toko | pantau & hapus | layanan-bantuan |
+| Ulasan & rating | dapat notifikasi | beri/ubah/hapus | hapus | layanan-penjualan |
+| Dashboard admin (GMV, grafik pesanan, produk terlaris, pendapatan per toko) | – | – | ✓ | frontend |
+
 ## Alur pesanan
 
 **Menunggu Bayar → Dibayar → Diproses → Dikirim → Selesai.** Pembeli atau penjual bisa membatalkan selama pesanan belum diproses. Pesanan yang dibatalkan tetap tercatat dan stoknya kembali ke katalog.
@@ -131,7 +143,7 @@ Ongkir dihitung dari kab/kota toko ke kab/kota pembeli. Pesanan sampai 100 kg di
 ```
 ├── docker-compose.yml     # orkestrasi 8 container
 ├── .env.example           # contoh variabel lingkungan
-├── database/              # 01 init, 02 info, 03 toko, 04 status pesanan, 05 akun & notifikasi, 06 produk, 07 checkout, 08 ulasan
+├── database/              # 01 init, 02 info, 03 toko, 04 status pesanan, 05 akun & notifikasi, 06 produk, 07 checkout, 08 ulasan, 09 iklan, 10 pengiriman, 11 voucher, 12 chat, 13 galeri
 ├── gateway/nginx.conf     # reverse proxy + pemeriksaan token
 ├── frontend/              # info (/), pasar (/pasar/), belanja.js/.css (marketplace), aset (font, kota.json)
 ├── layanan-auth/          # Express: akun & toko

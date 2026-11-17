@@ -35,7 +35,9 @@ const hariIni = () => new Date().toISOString().slice(0, 10);
 const promoAktif = (r) => r.harga_promo != null && r.harga_promo < r.harga_per_kg && (!r.promo_sampai || r.promo_sampai >= hariIni());
 const withTotal = (r) => {
   const promo = promoAktif(r);
-  return { ...r, unggulan: !!r.unggulan, promo_aktif: promo, harga_aktif: promo ? r.harga_promo : r.harga_per_kg,
+  let galeri = [];
+  try { galeri = JSON.parse(r.galeri || "[]"); } catch { galeri = []; }
+  return { ...r, galeri, unggulan: !!r.unggulan, promo_aktif: promo, harga_aktif: promo ? r.harga_promo : r.harga_per_kg,
     diskon_persen: promo ? Math.round((1 - r.harga_promo / r.harga_per_kg) * 100) : 0,
     total_nilai: Number((r.jumlah_kg * r.harga_per_kg).toFixed(2)) };
 };
@@ -239,6 +241,7 @@ app.delete("/api/panen/:id", async (req, res) => {
   if (!bolehUbah(u, lama[0])) return err(res, "anda hanya boleh menghapus panen milik sendiri", 403);
   await pool.query("DELETE FROM panen WHERE id = ?", [req.params.id]);
   await hapusFile(lama[0].foto);
+  for (const g of JSON.parse(lama[0].galeri || "[]")) await hapusFile(g);
   ok(res, { id: Number(req.params.id) }, 200, "data panen berhasil dihapus");
 });
 
@@ -247,6 +250,48 @@ const JENIS = { "image/jpeg": ["jpg", [0xff, 0xd8, 0xff]], "image/png": ["png", 
 async function hapusFile(url) {
   if (url && url.startsWith("/uploads/produk/")) await fs.unlink(path.join(FOLDER_FOTO, path.basename(url))).catch(() => {});
 }
+// simpan satu gambar data URL ke volume, kembalikan path /uploads/produk/... (atau objek error)
+async function simpanGambar(idProduk, dataUrl) {
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ""));
+  if (!m) return { error: "kirim gambar JPG, PNG, atau WebP", code: 400 };
+  const buf = Buffer.from(m[2], "base64");
+  const [ext, sig] = JENIS[m[1]];
+  if (buf.length > 2 * 1024 * 1024) return { error: "ukuran foto maksimal 2 MB", code: 413 };
+  if (!sig.every((b, i) => buf[i] === b)) return { error: "isi file bukan gambar yang valid", code: 400 };
+  const nama = `${idProduk}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
+  await fs.mkdir(FOLDER_FOTO, { recursive: true });
+  await fs.writeFile(path.join(FOLDER_FOTO, nama), buf);
+  return { path: `/uploads/produk/${nama}` };
+}
+
+// ---- Galeri: foto tambahan (maks. 5)
+app.post("/api/panen/:id/galeri", async (req, res) => {
+  const u = pengguna(req);
+  const [lama] = await pool.query("SELECT * FROM panen WHERE id = ?", [req.params.id]);
+  if (!lama.length) return err(res, `panen id ${req.params.id} tidak ditemukan`, 404);
+  if (!bolehUbah(u, lama[0]) || (u && u.role === "pembeli")) return err(res, "anda hanya boleh mengubah foto produk sendiri", 403);
+  const galeri = JSON.parse(lama[0].galeri || "[]");
+  if (galeri.length >= 5) return err(res, "galeri maksimal 5 foto; hapus salah satu dulu", 422);
+  const g = await simpanGambar(lama[0].id, req.body?.gambar);
+  if (g.error) return err(res, g.error, g.code);
+  galeri.push(g.path);
+  await pool.query("UPDATE panen SET galeri = ? WHERE id = ?", [JSON.stringify(galeri), lama[0].id]);
+  const [rows] = await pool.query("SELECT * FROM panen WHERE id = ?", [lama[0].id]);
+  ok(res, withTotal(rows[0]), 201, `foto galeri ditambahkan (${galeri.length}/5)`);
+});
+app.delete("/api/panen/:id/galeri/:urutan", async (req, res) => {
+  const u = pengguna(req);
+  const [lama] = await pool.query("SELECT * FROM panen WHERE id = ?", [req.params.id]);
+  if (!lama.length) return err(res, `panen id ${req.params.id} tidak ditemukan`, 404);
+  if (!bolehUbah(u, lama[0]) || (u && u.role === "pembeli")) return err(res, "anda hanya boleh mengubah foto produk sendiri", 403);
+  const galeri = JSON.parse(lama[0].galeri || "[]"), i = Number(req.params.urutan);
+  if (!(i >= 0 && i < galeri.length)) return err(res, "foto galeri tidak ditemukan", 404);
+  await hapusFile(galeri[i]);
+  galeri.splice(i, 1);
+  await pool.query("UPDATE panen SET galeri = ? WHERE id = ?", [JSON.stringify(galeri), lama[0].id]);
+  ok(res, { galeri }, 200, "foto galeri dihapus");
+});
+
 app.post("/api/panen/:id/foto", async (req, res) => {
   const u = pengguna(req);
   const [lama] = await pool.query("SELECT * FROM panen WHERE id = ?", [req.params.id]);

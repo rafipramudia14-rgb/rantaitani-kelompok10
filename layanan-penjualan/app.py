@@ -185,7 +185,7 @@ def katalog():
         tk = toko.get(p["pemilik_id"])
         if sisa > 0 and tk:
             items.append({"toko": tk["nama_toko"], "toko_id": tk["id"], "provinsi": tk["provinsi"], "kota": tk["kota"], "kota_id": tk.get("kota_id"),
-                          "nama_produk": p.get("nama_produk") or p["komoditas"], "deskripsi": p.get("deskripsi"), "foto": p.get("foto"),
+                          "nama_produk": p.get("nama_produk") or p["komoditas"], "deskripsi": p.get("deskripsi"), "foto": p.get("foto"), "galeri": p.get("galeri") or [],
                           "harga_normal": p["harga_per_kg"], "promo_aktif": p.get("promo_aktif", False), "diskon_persen": p.get("diskon_persen", 0),
                           "promo_sampai": p.get("promo_sampai"), "unggulan": p.get("unggulan", False), "terjual_kg": t.get(p["id"], 0.0),
                           "rating": rating.get(p["id"], (None, 0))[0], "jumlah_ulasan": rating.get(p["id"], (None, 0))[1],

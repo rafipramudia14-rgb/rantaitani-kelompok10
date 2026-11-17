@@ -26,6 +26,7 @@ services:
       - ./database/pengiriman.sql:/docker-entrypoint-initdb.d/10-pengiriman.sql:ro
       - ./database/voucher.sql:/docker-entrypoint-initdb.d/11-voucher.sql:ro
       - ./database/chat.sql:/docker-entrypoint-initdb.d/12-chat.sql:ro
+      - ./database/galeri.sql:/docker-entrypoint-initdb.d/13-galeri.sql:ro
     networks:
       - tani-net
     healthcheck:
