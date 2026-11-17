@@ -78,6 +78,7 @@ async function bukaProduk(pid) {
   f.no_hp_penerima.value = B.profil.no_hp || "";
   await pasangPilihKota(f.provinsi_tujuan, f.kota_tujuan_id, B.profil.provinsi, B.profil.kota_id);
   f.provinsi_tujuan.addEventListener("change", hitungCheckout);
+  await siapkanVoucherCheckout(p);
   $("#dlg-produk").showModal();
   hitungCheckout();
   tampilUlasanProduk(p.panen_id);
@@ -95,7 +96,8 @@ function hitungCheckout() {
       const d = await Estimasi.hitung(p.provinsi, f.provinsi_tujuan.value, kgBeli / 1000 + "", p.kota_id, f.kota_tujuan_id.value);
       $("#ck-ongkir").textContent = rp(d.total_biaya);
       $("#ck-kirim").innerHTML = `🚚 ${esc(d.moda)} · ${esc(d.kota_asal)} → ${esc(d.kota_tujuan)} · ± ${d.estimasi_hari_bulat} hari`;
-      $("#ck-total").textContent = rp(sub + d.total_biaya);
+      const pot = await potonganVoucher(sub, d.total_biaya);
+      $("#ck-total").textContent = rp(sub + d.total_biaya - pot);
     } catch (e) { $("#ck-ongkir").textContent = "-"; $("#ck-kirim").textContent = e.message; }
   }, 250);
 }
@@ -104,7 +106,8 @@ $("#form-checkout").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.target, p = B.produk;
   const body = { panen_id: p.panen_id, jumlah_kg: keKg(f), metode_bayar: f.metode_bayar.value, provinsi_tujuan: f.provinsi_tujuan.value,
-    kota_tujuan_id: Number(f.kota_tujuan_id.value) || null, alamat_kirim: f.alamat_kirim.value, no_hp_penerima: f.no_hp_penerima.value };
+    kota_tujuan_id: Number(f.kota_tujuan_id.value) || null, alamat_kirim: f.alamat_kirim.value, no_hp_penerima: f.no_hp_penerima.value,
+    voucher_kode: B.voucher || undefined };
   if (!body.kota_tujuan_id) return toast("Pilih kab/kota tujuan", true);
   try {
     const r = await api("POST", "/api/penjualan", body);
@@ -164,7 +167,7 @@ function renderPesanan() {
         ${j.no_resi ? `<p class="ps-resi">Resi <b>${esc(j.no_resi)}</b> · ${esc(j.jasa_kirim || "")}</p>` : ""}
         ${j.kota_tujuan ? `<p class="ps-kirim">🚚 ${esc(j.moda_kirim || "")} · ${esc(j.kota_asal || "")} → ${esc(j.kota_tujuan)} · ± ${Math.ceil(j.estimasi_hari || 1)} hari</p>` : ""}
         ${jejak(j.status_pesanan)}</div>
-        <div class="ps-total"><small>Total bayar${j.metode_bayar ? " · " + esc(j.metode_bayar) : ""}</small><b>${rp(j.total_bayar ?? j.total_harga)}</b>${j.ongkir ? `<small>termasuk ongkir ${rp(j.ongkir)}</small>` : ""}</div></div>
+        <div class="ps-total"><small>Total bayar${j.metode_bayar ? " · " + esc(j.metode_bayar) : ""}</small><b>${rp(j.total_bayar ?? j.total_harga)}</b>${j.ongkir ? `<small>termasuk ongkir ${rp(j.ongkir)}</small>` : ""}${j.potongan ? `<small class="v-hemat">voucher ${esc(j.voucher_kode)} −${rp(j.potongan)}</small>` : ""}</div></div>
       <footer>${j.status_pesanan === "Menunggu Bayar" && j.status_bayar === "Belum Lunas" ? `<button class="btn primary sm" data-bayar2="${j.id}">Bayar sekarang</button>` : ""}
         ${j.status_bayar === "Menunggu Konfirmasi" ? '<span class="tag">menunggu konfirmasi penjual</span>' : ""}
         ${j.jalur ? `<button class="btn sm" data-lacak="${j.id}">Lacak pengiriman</button>` : ""}

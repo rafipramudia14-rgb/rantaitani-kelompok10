@@ -258,3 +258,18 @@ i[class^="logo-"]{display:inline-grid;place-items:center;width:30px;height:30px;
 .lk-daftar li div{display:grid}.lk-daftar small{color:var(--muted)}
 .lk-daftar li.kosong{color:var(--muted)}
 #lk-saran .chip{font-size:.74rem;padding:5px 10px}
+
+/* ---- Voucher */
+.v-daftar{display:flex;gap:8px;flex-wrap:wrap}
+.v-chip{display:grid;gap:1px;text-align:left;border:1.5px dashed #c9a24d;background:#fffaf0;border-radius:12px;padding:8px 12px;cursor:pointer;font:500 .78rem var(--sans);color:var(--ink);transition:.15s}
+.v-chip b{font-size:.85rem;letter-spacing:.04em;color:#8a5d00}.v-chip small{color:var(--muted);font-size:.7rem}
+.v-chip:hover{background:#fdf1d3}
+.v-chip.aktif{border-style:solid;border-color:var(--green);background:var(--green-2)}
+.v-chip.aktif b{color:var(--green)}
+.v-chip.statis{cursor:default}
+.v-input{display:flex;gap:8px}.v-input input{text-transform:uppercase}
+.v-info{margin:0;font-size:.8rem}.v-info.ok{color:var(--green)}.v-info.gagal{color:var(--red)}
+.v-hemat{color:var(--red)!important}
+.v-kode{font:700 .85rem var(--sans);letter-spacing:.06em;background:#fdf1d3;color:#8a5d00;border:1px dashed #c9a24d;border-radius:8px;padding:3px 8px}
+.v-bar{height:4px;background:var(--line);border-radius:3px;margin-top:4px;overflow:hidden}.v-bar i{display:block;height:100%;background:var(--gold)}
+#dlg-voucher{width:min(560px,calc(100% - 32px))}

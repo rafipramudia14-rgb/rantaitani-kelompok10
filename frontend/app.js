@@ -32,7 +32,7 @@ let lahanList = [], panenList = [], jualList = [], katalogList = [], userList = 
 
 const MENU = {
   admin: [["ringkasan", "Ringkasan"], ["lahan", "Lahan"], ["panen", "Panen"], ["penjualan", "Penjualan"], ["toko-admin", "Verifikasi Toko"], ["harga", "Harga Pangan"], ["pengguna", "Pengguna"], ["akun", "Akun"]],
-  penjual: [["ringkasan", "Ringkasan"], ["toko", "Toko Saya"], ["lahan", "Lahan Saya"], ["panen", "Produk & Panen"], ["iklan", "Iklan Saya"], ["penjualan", "Pesanan Masuk"], ["akun", "Akun Saya"]],
+  penjual: [["ringkasan", "Ringkasan"], ["toko", "Toko Saya"], ["lahan", "Lahan Saya"], ["panen", "Produk & Panen"], ["iklan", "Iklan Saya"], ["voucher", "Voucher"], ["penjualan", "Pesanan Masuk"], ["akun", "Akun Saya"]],
   pembeli: [["beranda", "Belanja"], ["pesanan", "Pesanan Saya"], ["peta", "Peta Penjual"], ["akun", "Akun Saya"]],
 };
 const LABEL_ROLE = { admin: "Admin", penjual: "Penjual", pembeli: "Pembeli" };
@@ -646,9 +646,9 @@ async function simpan(method, url, body, dialog) {
   } catch (err) { toast(err.message, true); }
 }
 
-const URL_HAPUS = { iklan: "/api/panen/iklan/", toko: "/api/auth/toko/", harga: "/api/info/harga/", lahan: "/api/lahan/", panen: "/api/panen/", penjualan: "/api/penjualan/", pembelian: "/api/penjualan/", pengguna: "/api/auth/users/" };
-const SUMBER = { iklan: () => iklanList, toko: () => (tokoSaya ? [tokoSaya] : tokoList), harga: () => hargaList, lahan: () => lahanList, panen: () => panenList, penjualan: () => jualList, pengguna: () => userList };
-const BUKA = { iklan: (i) => bukaIklan(i), toko: bukaToko, harga: bukaHarga, lahan: bukaLahan, panen: bukaPanen, penjualan: bukaJual, pengguna: bukaUser };
+const URL_HAPUS = { voucher: "/api/penjualan/voucher/", iklan: "/api/panen/iklan/", toko: "/api/auth/toko/", harga: "/api/info/harga/", lahan: "/api/lahan/", panen: "/api/panen/", penjualan: "/api/penjualan/", pembelian: "/api/penjualan/", pengguna: "/api/auth/users/" };
+const SUMBER = { voucher: () => voucherList, iklan: () => iklanList, toko: () => (tokoSaya ? [tokoSaya] : tokoList), harga: () => hargaList, lahan: () => lahanList, panen: () => panenList, penjualan: () => jualList, pengguna: () => userList };
+const BUKA = { voucher: (v) => bukaVoucher(v), iklan: (i) => bukaIklan(i), toko: bukaToko, harga: bukaHarga, lahan: bukaLahan, panen: bukaPanen, penjualan: bukaJual, pengguna: bukaUser };
 
 document.addEventListener("click", async (e) => {
   const t = e.target;
@@ -715,6 +715,7 @@ async function refresh() {
   muatNotif();
   tandaiKeranjang();
   muatIklan();
+  muatVoucher();
 }
 
 // ---------------- Chatbot asisten (layanan-bantuan)

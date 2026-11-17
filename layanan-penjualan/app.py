@@ -65,7 +65,7 @@ def clean(row):
         out[k] = v
     if "jumlah_kg" in out and "harga_jual_per_kg" in out:
         out["total_harga"] = round(out["jumlah_kg"] * out["harga_jual_per_kg"], 2)
-        out["total_bayar"] = round(out["total_harga"] + float(out.get("ongkir") or 0), 2)
+        out["total_bayar"] = round(out["total_harga"] + float(out.get("ongkir") or 0) - float(out.get("potongan") or 0), 2)
     if out.get("jalur"):
         try:
             out["jalur"] = json.loads(out["jalur"])
@@ -270,13 +270,23 @@ def create_penjualan():
             est = ambil_json(f"{INFO_URL}/api/info/publik/estimasi?{q}")
             if not est:
                 return err("ongkir belum bisa dihitung (layanan-info tidak merespons atau alamat tidak valid)", 503)
+            potongan, kode_v = 0, None
+            if b.get("voucher_kode"):
+                subtotal = float(b["jumlah_kg"]) * float(panen.get("harga_aktif", panen["harga_per_kg"]))
+                v, pesan_v = cari_voucher(cur, b["voucher_kode"], panen["pemilik_id"], subtotal)
+                if not v:
+                    return err(pesan_v, 422)
+                potongan, kode_v = hitung_potongan(v, subtotal, est["total_biaya"]), v["kode"]
+                cur.execute("UPDATE voucher SET terpakai = terpakai + 1 WHERE id=%s AND terpakai < kuota", (v["id"],))
+                if not cur.rowcount:
+                    return err("kuota voucher sudah habis", 422)
             cur.execute(
                 "INSERT INTO penjualan (panen_id, penjual_id, pembeli_id, pembeli, jenis_pembeli, jumlah_kg, harga_jual_per_kg, tanggal_jual, "
                 "status_bayar, status_pesanan, metode_bayar, ongkir, moda_kirim, estimasi_hari, kota_asal, kota_tujuan, provinsi_tujuan, "
-                "alamat_kirim, no_hp_penerima, jalur) VALUES (%s,%s,%s,%s,'Perorangan',%s,%s,%s,'Belum Lunas','Menunggu Bayar',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                "alamat_kirim, no_hp_penerima, jalur, voucher_kode, potongan) VALUES (%s,%s,%s,%s,'Perorangan',%s,%s,%s,'Belum Lunas','Menunggu Bayar',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (b["panen_id"], panen["pemilik_id"], u[0], u[2], b["jumlah_kg"], panen.get("harga_aktif", panen["harga_per_kg"]), date.today(),
                  metode, est["total_biaya"], est["moda"], est["estimasi_hari"], est["kota_asal"], est["kota_tujuan"], prov_t,
-                 alamat[:200], (b.get("no_hp_penerima") or akun.get("no_hp") or "")[:20], json.dumps(est["jalur"])),
+                 alamat[:200], (b.get("no_hp_penerima") or akun.get("no_hp") or "")[:20], json.dumps(est["jalur"]), kode_v, potongan),
             )
             cur.execute("SELECT * FROM penjualan WHERE id=%s", (cur.lastrowid,))
             row = cur.fetchone()
@@ -405,6 +415,8 @@ def batal(sid):
         if row["status_pesanan"] not in BOLEH_BATAL:
             return err(f"pesanan sudah {row['status_pesanan']}, tidak bisa dibatalkan lagi", 422)
         cur.execute("UPDATE penjualan SET status_pesanan='Dibatalkan' WHERE id=%s", (sid,))
+        if row.get("voucher_kode"):
+            cur.execute("UPDATE voucher SET terpakai = GREATEST(terpakai - 1, 0) WHERE kode=%s", (row["voucher_kode"],))
         oleh_pembeli = u and u[1] == "pembeli"
         kabari(row["penjual_id"] if oleh_pembeli else row["pembeli_id"], f"Pesanan #{sid} dibatalkan",
                f"Pesanan #{sid} dibatalkan oleh {'pembeli' if oleh_pembeli else 'penjual'}.")
@@ -541,6 +553,181 @@ def hapus_ulasan(uid):
             return err("hanya penulis ulasan atau admin yang boleh menghapus", 403)
         cur.execute("DELETE FROM ulasan WHERE id=%s", (uid,))
     return ok({"id": uid}, message="ulasan dihapus")
+
+
+# ---------------------------------------------------------------- Voucher toko
+TIPE_V = ("Persen", "Nominal", "Gratis Ongkir")
+F_V = ["kode", "nama", "tipe", "nilai", "maks_potongan", "min_belanja", "kuota", "mulai", "selesai", "aktif"]
+
+
+def cari_voucher(cur, kode, penjual_id, subtotal):
+    cur.execute("SELECT * FROM voucher WHERE kode=%s", (str(kode).strip().upper(),))
+    v = cur.fetchone()
+    if not v or v["penjual_id"] != penjual_id:
+        return None, "kode voucher tidak berlaku untuk toko ini"
+    hari = date.today()
+    if not v["aktif"] or v["mulai"] > hari or v["selesai"] < hari:
+        return None, "voucher tidak aktif atau sudah lewat periodenya"
+    if v["terpakai"] >= v["kuota"]:
+        return None, "kuota voucher sudah habis"
+    if subtotal < v["min_belanja"]:
+        return None, f"minimal belanja Rp{v['min_belanja']:,} untuk voucher ini".replace(",", ".")
+    return v, None
+
+
+def hitung_potongan(v, subtotal, ongkir):
+    if v["tipe"] == "Persen":
+        p = subtotal * v["nilai"] / 100
+    elif v["tipe"] == "Nominal":
+        p = v["nilai"]
+    else:
+        p = ongkir if not v["nilai"] else min(ongkir, v["nilai"])
+    if v["maks_potongan"]:
+        p = min(p, v["maks_potongan"])
+    return round(min(p, subtotal + ongkir), 2)
+
+
+def cek_voucher_data(b, parsial=False):
+    out = {}
+    for f in F_V:
+        if f not in b or b[f] in ("", None):
+            if not parsial and f in ("kode", "nama", "tipe", "nilai", "kuota", "mulai", "selesai"):
+                return None, err(f"field wajib kosong: {f}", 400)
+            if f == "maks_potongan" and f in b:
+                out[f] = None
+            continue
+        v = b[f]
+        if f == "kode":
+            v = str(v).strip().upper()
+            if not (4 <= len(v) <= 20) or not v.isalnum():
+                return None, err("kode voucher 4-20 huruf/angka tanpa spasi", 400)
+        elif f == "tipe" and v not in TIPE_V:
+            return None, err("tipe harus Persen, Nominal, atau Gratis Ongkir", 400)
+        elif f in ("nilai", "maks_potongan", "min_belanja", "kuota"):
+            try:
+                v = int(float(v))
+            except (TypeError, ValueError):
+                return None, err(f"{f} harus angka", 400)
+            if v < 0 or (f == "kuota" and v < 1):
+                return None, err(f"{f} tidak valid", 400)
+        elif f in ("mulai", "selesai"):
+            v = str(v)[:10]
+        elif f == "aktif":
+            v = 1 if v in (1, True, "1", "true", "on") else 0
+        elif f == "nama":
+            v = str(v).strip()[:80]
+        out[f] = v
+    if out.get("tipe") == "Persen" and not (1 <= out.get("nilai", 1) <= 90):
+        return None, err("diskon persen harus 1-90%", 400)
+    if out.get("mulai") and out.get("selesai") and out["selesai"] < out["mulai"]:
+        return None, err("tanggal selesai tidak boleh sebelum tanggal mulai", 400)
+    return out, None
+
+
+def voucher_publik(v):
+    d = clean(v)
+    d["sisa"] = v["kuota"] - v["terpakai"]
+    d["berlaku"] = bool(v["aktif"]) and v["mulai"] <= date.today() <= v["selesai"] and d["sisa"] > 0
+    return d
+
+
+@app.get("/api/penjualan/voucher")
+def list_voucher():
+    u = pengguna()
+    if not u or u[1] == "pembeli":
+        return err("hanya penjual dan admin", 403)
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM voucher" + (" WHERE penjual_id=%s" if u[1] == "penjual" else "") + " ORDER BY id DESC",
+                    (u[0],) if u[1] == "penjual" else ())
+        rows = [voucher_publik(v) for v in cur.fetchall()]
+    return ok(rows, message=f"{len(rows)} voucher")
+
+
+@app.get("/api/penjualan/voucher/toko/<int:pid>")
+def voucher_toko(pid):
+    with conn() as c, c.cursor() as cur:
+        cur.execute("SELECT * FROM voucher WHERE penjual_id=%s AND aktif=1 AND mulai<=CURDATE() AND selesai>=CURDATE() AND terpakai<kuota ORDER BY id", (pid,))
+        rows = [voucher_publik(v) for v in cur.fetchall()]
+    return ok(rows, message=f"{len(rows)} voucher tersedia")
+
+
+@app.post("/api/penjualan/voucher/cek")
+def cek_voucher():
+    b = request.get_json(silent=True) or {}
+    panen, e = panggil_panen(f"/api/panen/{b.get('panen_id')}")
+    if e:
+        return err("produk tidak ditemukan", 404)
+    subtotal = float(b.get("jumlah_kg") or 0) * float(panen.get("harga_aktif", panen["harga_per_kg"]))
+    with conn() as c, c.cursor() as cur:
+        v, pesan = cari_voucher(cur, b.get("kode", ""), panen["pemilik_id"], subtotal)
+    if not v:
+        return err(pesan, 422)
+    pot = hitung_potongan(v, subtotal, float(b.get("ongkir") or 0))
+    return ok({"kode": v["kode"], "nama": v["nama"], "tipe": v["tipe"], "potongan": pot}, message=f"voucher {v['kode']} dipakai, hemat Rp{pot:,.0f}".replace(",", "."))
+
+
+@app.post("/api/penjualan/voucher")
+def buat_voucher():
+    u = pengguna()
+    if not u or u[1] != "penjual":
+        return err("hanya penjual yang membuat voucher toko", 403)
+    d, gagal = cek_voucher_data(request.get_json(silent=True) or {})
+    if gagal:
+        return gagal
+    d.setdefault("aktif", 1)
+    try:
+        with conn() as c, c.cursor() as cur:
+            cols = [*d.keys(), "penjual_id"]
+            cur.execute(f"INSERT INTO voucher ({','.join(cols)}) VALUES ({','.join(['%s'] * len(cols))})", [*d.values(), u[0]])
+            cur.execute("SELECT * FROM voucher WHERE id=%s", (cur.lastrowid,))
+            v = cur.fetchone()
+    except pymysql.err.IntegrityError:
+        return err("kode voucher sudah dipakai, pilih kode lain", 409)
+    return ok(voucher_publik(v), 201, f"voucher {v['kode']} dibuat")
+
+
+def ambil_voucher_milik(cur, vid, u):
+    cur.execute("SELECT * FROM voucher WHERE id=%s", (vid,))
+    v = cur.fetchone()
+    if not v:
+        return None, err(f"voucher id {vid} tidak ditemukan", 404)
+    if not u or not (u[1] == "admin" or v["penjual_id"] == u[0]):
+        return None, err("anda hanya boleh mengelola voucher toko sendiri", 403)
+    return v, None
+
+
+@app.put("/api/penjualan/voucher/<int:vid>")
+def ubah_voucher(vid):
+    u = pengguna()
+    d, gagal = cek_voucher_data(request.get_json(silent=True) or {}, parsial=True)
+    if gagal:
+        return gagal
+    if not d:
+        return err("tidak ada data yang diubah", 400)
+    try:
+        with conn() as c, c.cursor() as cur:
+            v, gagal = ambil_voucher_milik(cur, vid, u)
+            if gagal:
+                return gagal
+            if d.get("kuota") is not None and d["kuota"] < v["terpakai"]:
+                return err(f"kuota tidak boleh kurang dari yang sudah terpakai ({v['terpakai']})", 400)
+            cur.execute(f"UPDATE voucher SET {', '.join(k + '=%s' for k in d)} WHERE id=%s", [*d.values(), vid])
+            cur.execute("SELECT * FROM voucher WHERE id=%s", (vid,))
+            v = cur.fetchone()
+    except pymysql.err.IntegrityError:
+        return err("kode voucher sudah dipakai, pilih kode lain", 409)
+    return ok(voucher_publik(v), message="voucher diperbarui")
+
+
+@app.delete("/api/penjualan/voucher/<int:vid>")
+def hapus_voucher(vid):
+    u = pengguna()
+    with conn() as c, c.cursor() as cur:
+        v, gagal = ambil_voucher_milik(cur, vid, u)
+        if gagal:
+            return gagal
+        cur.execute("DELETE FROM voucher WHERE id=%s", (vid,))
+    return ok({"id": vid}, message="voucher dihapus")
 
 
 # ---------------------------------------------------------------- Pengiriman: atur kirim, resi, riwayat perjalanan

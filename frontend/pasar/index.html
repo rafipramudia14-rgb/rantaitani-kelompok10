@@ -211,6 +211,16 @@
     </table></div>
   </section>
 
+  <!-- Voucher (penjual) -->
+  <section id="tab-voucher" class="panel">
+    <p class="hint-info">Voucher tampil di halaman toko dan saat pembeli checkout produk Anda. Kuota yang dipakai pesanan batal otomatis dikembalikan.</p>
+    <div class="toolbar"><span></span><button class="btn primary" id="tambah-voucher">+ Buat Voucher</button></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Kode</th><th>Voucher</th><th>Periode</th><th class="num">Terpakai</th><th>Status</th><th></th></tr></thead>
+      <tbody id="tbl-voucher"></tbody>
+    </table></div>
+  </section>
+
   <!-- Toko saya (penjual) -->
   <section id="tab-toko" class="panel">
     <div id="toko-saya"></div>
@@ -394,13 +404,18 @@
           <label class="cek"><input type="checkbox" name="simpan_alamat" checked> Simpan sebagai alamat utama</label>
           <p class="ck-kirim" id="ck-kirim"></p>
         </fieldset>
+        <fieldset class="ck-voucher"><legend>🎟️ Voucher toko</legend>
+          <div class="v-daftar" id="ck-v-daftar"></div>
+          <div class="v-input"><input id="ck-v-kode" maxlength="20" placeholder="Punya kode voucher?" autocomplete="off"><button type="button" class="btn sm" id="ck-v-pakai">Pakai</button></div>
+          <p class="v-info" id="ck-v-info"></p>
+        </fieldset>
         <fieldset class="ck-metode"><legend>Metode pembayaran <span class="sim">SIMULASI</span></legend>
           <label><input type="radio" name="metode_bayar" value="QRIS" checked><span><i class="logo-qris"></i>QRIS</span></label>
           <label><input type="radio" name="metode_bayar" value="GoPay"><span><i class="logo-gopay"></i>GoPay</span></label>
           <label><input type="radio" name="metode_bayar" value="DANA"><span><i class="logo-dana"></i>DANA</span></label>
           <label><input type="radio" name="metode_bayar" value="Transfer Bank"><span><i class="logo-transfer"></i>Transfer Bank</span></label>
         </fieldset>
-        <div class="ck-ringkas"><div><span>Subtotal</span><b id="ck-sub">-</b></div><div><span>Ongkir</span><b id="ck-ongkir">-</b></div><div class="tot"><span>Total</span><b id="ck-total">-</b></div></div>
+        <div class="ck-ringkas"><div><span>Subtotal</span><b id="ck-sub">-</b></div><div><span>Ongkir</span><b id="ck-ongkir">-</b></div><div id="ck-pot-baris" hidden><span>Voucher</span><b id="ck-pot" class="v-hemat">-</b></div><div class="tot"><span>Total</span><b id="ck-total">-</b></div></div>
         <div class="ck-tombol"><button type="button" class="btn besar" id="ck-tambah">+ Keranjang</button><button class="btn primary besar">Beli sekarang</button></div>
       </div>
     </div>
@@ -433,6 +448,7 @@
   <div class="isi">
     <div class="bayar-atas"><span class="eyebrow" style="margin:0">Toko</span><button type="button" class="btn sm" data-close>Tutup</button></div>
     <div class="tk-kepala" id="tk-kepala"></div>
+    <div id="tk-voucher"></div>
     <h4 class="tk-sub">Semua produk</h4>
     <div class="mp-grid" id="tk-produk"></div>
   </div>
@@ -556,6 +572,21 @@
   </div>
 </dialog>
 
+<dialog id="dlg-voucher">
+  <form method="dialog" id="form-voucher">
+    <h3 id="judul-voucher">Buat Voucher</h3>
+    <input type="hidden" name="id">
+    <div class="row"><label>Kode (huruf/angka)<input name="kode" required maxlength="20" pattern="[A-Za-z0-9]{4,20}" placeholder="PANENRAYA" style="text-transform:uppercase"></label>
+      <label>Nama voucher<input name="nama" required maxlength="80" placeholder="Promo Panen Raya"></label></div>
+    <div class="row"><label>Tipe<select name="tipe"><option>Persen</option><option>Nominal</option><option>Gratis Ongkir</option></select></label>
+      <label id="v-label-nilai">Diskon (%)<input name="nilai" type="number" min="0" required></label></div>
+    <div class="row"><label>Maks. potongan (Rp)<input name="maks_potongan" type="number" min="0"></label><label>Minimal belanja (Rp)<input name="min_belanja" type="number" min="0" value="0"></label></div>
+    <div class="row"><label>Kuota<input name="kuota" type="number" min="1" required></label><label class="cek" style="align-self:end"><input type="checkbox" name="aktif"> Aktif</label></div>
+    <div class="row"><label>Mulai<input name="mulai" type="date" required></label><label>Selesai<input name="selesai" type="date" required></label></div>
+    <div class="actions"><button type="button" class="btn" data-close>Batal</button><button class="btn primary">Simpan voucher</button></div>
+  </form>
+</dialog>
+
 <dialog id="dlg-harga">
   <form method="dialog" id="form-harga">
     <h3 id="judul-harga">Tambah Harga Pangan</h3>
@@ -639,5 +670,6 @@
 <script src="../ulasan.js"></script>
 <script src="../iklan.js"></script>
 <script src="../kirim.js"></script>
+<script src="../voucher.js"></script>
 </body>
 </html>

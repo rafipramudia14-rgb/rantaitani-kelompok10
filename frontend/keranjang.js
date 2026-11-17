@@ -107,7 +107,7 @@ $("#form-keranjang").addEventListener("submit", async (e) => {
 $("#keranjang-btn").addEventListener("click", bukaKeranjang);
 
 // ---------------------------------------------------------------- Halaman toko
-function bukaToko2(tokoId) {
+async function bukaToko2(tokoId) {
   const t = tokoList.find((x) => x.id == tokoId);
   const produk = katalogList.filter((p) => p.toko_id == tokoId);
   if (!t && !produk.length) return toast("Toko tidak ditemukan", true);
@@ -120,7 +120,10 @@ function bukaToko2(tokoId) {
       ${t ? `<div><dt>Luas lahan</dt><dd>${kg(t.luas_lahan_ha)} ha</dd></div><div><dt>Hasil/panen</dt><dd>${berat(t.hasil_per_panen_kg)}</dd></div>` : ""}</dl>
     ${t?.kontak ? `<p class="tk-kontak">📞 ${esc(t.kontak)} · komoditas utama ${esc(t.komoditas_utama)}</p>` : ""}`;
   $("#tk-produk").innerHTML = produk.map(kartuProduk).join("") || `<p class="empty">Toko ini belum punya produk dengan stok.</p>`;
+  $("#tk-voucher").innerHTML = "";
   $("#dlg-toko2").showModal();
+  const vs = await voucherToko(t?.user_id || produk[0]?.penjual_id);
+  $("#tk-voucher").innerHTML = vs.length ? `<h4 class="tk-sub">🎟️ Voucher toko</h4><div class="v-daftar">${vs.map((v) => `<div class="v-chip statis"><b>${esc(v.kode)}</b><span>${labelV(v)}</span><small>${v.min_belanja ? "min. " + rp(v.min_belanja) + " · " : ""}sisa ${v.sisa}</small></div>`).join("")}</div>` : "";
 }
 document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-buka-toko]");
