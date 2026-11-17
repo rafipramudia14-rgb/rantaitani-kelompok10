@@ -1,0 +1,133 @@
+/* TaniMart — tema "Kayu Jati" (desain 17 pilihan kelompok).
+   Dimuat paling akhir di halaman Info & Pasar: hanya mengganti tampilan, fungsi tidak berubah. */
+:root{
+  --bg:#f3ece2; --surface:#fffaf3; --ink:#2a1d14; --muted:#7d6450; --line:#e0d2bf;
+  --green:#5a3e2b; --green-2:#efe3d3; --leaf:#8a6a4f; --gold:#d9b98c;
+  --amber:#7a4a25; --amber-2:#f4e6d1; --red:#9b2c1f; --red-2:#f6e1dc;
+  --kayu:#2a1d14; --kayu-2:#3b2a1e; --tan:#d9b98c;
+  --sans:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --shadow:0 1px 2px rgba(42,29,20,.06),0 14px 30px -18px rgba(42,29,20,.35);
+  --radius:4px;
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans)}
+.ambient{display:none}
+
+/* ---- Header: bilah kayu gelap */
+.topbar{position:sticky;top:0;margin:0;width:100%;max-width:none;border-radius:0;border:0;background:var(--kayu);
+  box-shadow:0 10px 30px -18px rgba(0,0,0,.6);padding:12px 28px;backdrop-filter:none}
+.topbar.dua-baris{border-radius:0}
+.topbar.dua-baris .tabs{border-top:1px solid rgba(217,185,140,.2)}
+.brand-text{color:#f3ece2;font:600 1.45rem/1 var(--display);letter-spacing:.02em}
+.brand-text small{color:var(--tan);font-family:var(--sans)}
+.logo-img{filter:sepia(.7) brightness(1.35)}
+.tab{color:#e8dccb;opacity:.85;border-radius:0;font-weight:500;letter-spacing:.02em;border-bottom:2px solid transparent}
+.tab:hover{background:transparent;opacity:1;color:#fff;border-bottom-color:rgba(217,185,140,.5)}
+.tab.active{background:transparent;color:var(--tan);box-shadow:none;border-bottom-color:var(--tan)}
+#user-nama{color:#f3ece2}
+.btn.gelap{background:transparent;border:1px solid var(--tan);color:var(--tan);border-radius:0}
+.btn.gelap:hover{background:var(--tan);color:var(--kayu)}
+.notif-btn{background:rgba(217,185,140,.12)!important;color:var(--tan);border-radius:0!important}
+.role{border-radius:2px}
+.notif-panel{border-radius:4px}
+
+/* ---- Judul halaman & teks */
+.eyebrow,.label{color:var(--amber);letter-spacing:.2em}
+.kepala h1,.hero h1,.blok-kepala h2,h2,dialog h3,.produk h3,.toko-kartu h3,.akun-kartu h3,.g-kartu h3,.kartu-form h3,
+.ck-kanan h3,.mp-banner h2,.tk-judul h3,.ajak h2,.harga-kartu h3,.fitur h3{font-family:var(--display);font-style:italic;font-weight:600}
+#subjudul,.ket{color:var(--muted)}
+
+/* ---- Tombol: garis tipis, huruf kapital */
+.btn{border-radius:0;font-weight:600}
+.btn.primary{background:var(--kayu);border-color:var(--kayu);color:#f3ece2;box-shadow:none;text-transform:uppercase;letter-spacing:.1em;font-size:.78rem}
+.btn.primary:hover{background:var(--kayu-2)}
+.btn.sm{font-size:.74rem}
+.btn.danger{color:var(--red);border-color:#e5c3bb}
+.btn.terang{background:transparent;color:var(--tan);border:1px solid var(--tan)}
+.chip,.mp-kat{border-radius:0!important}
+.chip.aktif,.chip[aria-pressed="true"]{background:var(--kayu);border-color:var(--kayu);color:var(--tan)}
+input,select,textarea,.toolbar input,.toolbar select,.mp-cari,.v-input input,.blok-kepala select,.est-form select,.est-form input{border-radius:0!important}
+input:focus,select:focus{border-color:var(--leaf);box-shadow:0 0 0 3px rgba(138,106,79,.15)}
+
+/* ---- Kartu & tabel */
+.card,.tablewrap,.kartu-form,.akun-kartu,.toko-kartu,.toko-kosong,.g-kartu,.mp-kartu,.ps-kartu,.harga-kartu,.fitur article,.grafik-kartu,
+.peta-kartu,.peringkat,.est-ringkas div,.est-tahap li,.daftar-toko li,.produk{border-radius:var(--radius)!important;background:var(--surface)}
+.card::after{display:none}
+.card b{color:var(--kayu)}
+th{background:#efe4d4;color:var(--muted)}
+tbody tr:hover td,.tablewrap td:last-child,.tablewrap th:last-child{background:var(--surface)}
+.tablewrap th:last-child{background:#efe4d4}
+.badge{border-radius:2px}
+.badge.Lunas{background:#e7ead8;color:#4a5a2a}
+dialog{border-radius:4px}
+dialog::backdrop{background:rgba(42,29,20,.5)}
+.hint-info{background:#efe4d4;border-radius:2px}
+
+/* ---- Belanja (marketplace) */
+.mp-cari{background:var(--surface);border:1px solid var(--line);box-shadow:none}
+.mp-banner{background:var(--kayu-2);border-radius:2px;padding:0;grid-template-columns:1fr 1fr;box-shadow:none;min-height:280px}
+.mp-banner::after{display:none}
+.mp-banner-teks{padding:40px}
+.mp-banner .eyebrow{color:var(--tan)}
+.mp-banner h2{font-size:clamp(1.8rem,3vw,2.6rem)}
+.mp-banner-foto{height:100%;min-height:280px;border-radius:0;box-shadow:none;background:repeating-linear-gradient(90deg,#5a3e2b 0 6px,#4a3222 6px 14px)}
+.mp-banner-foto .foto-kosong{background:transparent}
+.mp-kat{background:transparent!important;border:0!important;border-bottom:1px solid #c9b49a!important;color:var(--ink)}
+.mp-kat span{background:transparent!important}
+.mp-kat.aktif{background:transparent!important;color:var(--kayu)!important;border-bottom:2px solid var(--kayu)!important;font-weight:700}
+.mp-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:28px}
+.mp-kartu{border:0;box-shadow:none;background:transparent!important}
+.mp-kartu:hover{transform:translateY(-3px);box-shadow:none}
+.mp-foto{aspect-ratio:4/5;background:#e3d6c4}
+.foto-kosong{background:#e3d6c4}
+.mp-isi{text-align:center;padding:14px 4px}
+.mp-isi h3{font:600 1.05rem/1.3 var(--display);font-style:italic;color:var(--ink);min-height:auto}
+.mp-harga{color:var(--amber)}
+.mp-diskon{background:var(--kayu);color:var(--tan);border-radius:0}
+.mp-unggul{background:var(--surface);color:var(--kayu);border-radius:0}
+.mp-iklan{background:#efe4d4;color:var(--amber);border-radius:0;justify-self:center}
+.mp-kartu.sponsor{box-shadow:0 0 0 1px var(--tan)}
+.v-chip,.v-kode{border-radius:0!important;border:1px solid var(--leaf)!important;background:var(--surface)!important}
+.v-chip b,.v-kode{color:var(--kayu)!important;font-family:var(--display)}
+.v-chip.aktif{background:var(--kayu)!important;color:var(--tan)}.v-chip.aktif b{color:var(--tan)!important}
+.ck-kiri{background:#efe4d4}
+.ck-foto,.ck-toko,.ck-ringkas,.ck-metode label span,.by-tab,.by-va div,fieldset{border-radius:2px!important}
+.ck-harga{color:var(--amber)}
+.ck-metode label input:checked+span,.by-tab.aktif{background:#efe4d4;border-color:var(--kayu)}
+.tk-kepala{background:var(--kayu);border-radius:2px}
+.tk-avatar{border-radius:50%}
+.ps-kartu footer{background:#efe4d4}
+.ch-baris.saya .ch-bubble{background:var(--kayu);border-color:var(--kayu)}
+.ch-av,.akun-avatar{background:var(--kayu-2)!important;color:var(--tan)}
+.ch-kiri{background:#efe4d4}
+.chat-fab,.chat-form button,.chat-atas{background:var(--kayu)!important}
+.bubble.saya{background:var(--kayu)}
+.lc-garis{stroke:var(--kayu)}
+#toast{border-radius:2px;background:var(--kayu)}
+
+/* ---- Halaman Info */
+.hero{gap:0;align-items:stretch}
+.info .hero{background:var(--kayu-2);color:#f3ece2;padding:0;margin-top:26px;border-radius:2px}
+.info .hero-teks{padding:44px}
+.info .hero h1{color:#f3ece2}
+.info .lead{color:#e8dccb}.info .lead b{color:var(--tan)}
+.info .hero-angka{padding:30px;background:repeating-linear-gradient(90deg,#5a3e2b 0 6px,#4a3222 6px 14px)}
+.info .hero-angka .card{background:rgba(243,236,226,.95)}
+.info .hero-angka .card:nth-child(2n){translate:none}
+.info .topbar>.btn.primary{background:transparent;border:1px solid var(--tan);color:var(--tan)}
+.ajak{background:var(--kayu);border-radius:2px;box-shadow:none}
+.kaki{background:var(--kayu);border-radius:0}
+.fitur .ikon,.harga-kartu .tingkat{color:var(--amber)}
+.fitur .crud{color:var(--kayu)}
+#peta-svg path{stroke:#f3ece2}
+.peta-legenda span{border-radius:0}
+
+/* ---- Login */
+.kartu{background:rgba(42,29,20,.62)!important;border-color:rgba(217,185,140,.6)!important;border-radius:4px!important}
+.kartu-tab{background:var(--tan)!important;color:var(--kayu)!important}
+.kartu-tab::before{box-shadow:8px -8px 0 6px var(--tan)!important}.kartu-tab::after{box-shadow:-8px -8px 0 6px var(--tan)!important}
+.tombol{background:var(--tan)!important;color:var(--kayu)!important;border-radius:0!important;text-transform:uppercase;letter-spacing:.12em}
+.isian input{border-radius:0!important}
+.merek{font-family:var(--display)!important;font-style:italic}
+
+@media (max-width:860px){.mp-banner{grid-template-columns:1fr}.mp-banner-foto{min-height:160px}.info .hero{grid-template-columns:1fr}}

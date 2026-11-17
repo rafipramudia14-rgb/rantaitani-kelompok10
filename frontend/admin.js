@@ -2,7 +2,7 @@
 const MOD = { tab: "pengiriman", ulasan: [] };
 
 // ---------------------------------------------------------------- Grafik sederhana (SVG, tanpa library)
-function grafikBatang(data, warna = "#1f5a34", fmt = (v) => v) {
+function grafikBatang(data, warna = "#5a3e2b", fmt = (v) => v) {
   const W = 1100, H = 230, L = 8, B = 34, max = Math.max(1, ...data.map((d) => d[1]));
   const lb = (W - L * 2) / Math.max(1, data.length), bw = Math.min(46, lb * 0.62);
   return `<svg viewBox="0 0 ${W} ${H}" class="grafik-svg" role="img">` + data.map(([lab, v], i) => {
@@ -43,9 +43,9 @@ function renderDashboardAdmin() {
     </div>
     <div class="adm-grafik">
       <section class="g-kartu lebar"><h3>Pesanan 14 hari terakhir</h3>${grafikBatang(perHari)}</section>
-      <section class="g-kartu"><h3>Status pesanan</h3>${grafikMendatar(status, "#1f5a34")}</section>
-      <section class="g-kartu"><h3>Produk terlaris (kg)</h3>${grafikMendatar(Object.entries(perProduk).sort((a, b) => b[1] - a[1]).slice(0, 5), "#c9a24d", (v) => berat(v))}</section>
-      <section class="g-kartu"><h3>Pendapatan lunas per toko</h3>${grafikMendatar(Object.entries(perToko).sort((a, b) => b[1] - a[1]).slice(0, 5), "#7fae3a", rpSingkat)}</section>
+      <section class="g-kartu"><h3>Status pesanan</h3>${grafikMendatar(status, "#5a3e2b")}</section>
+      <section class="g-kartu"><h3>Produk terlaris (kg)</h3>${grafikMendatar(Object.entries(perProduk).sort((a, b) => b[1] - a[1]).slice(0, 5), "#c9a06b", (v) => berat(v))}</section>
+      <section class="g-kartu"><h3>Pendapatan lunas per toko</h3>${grafikMendatar(Object.entries(perToko).sort((a, b) => b[1] - a[1]).slice(0, 5), "#8a6a4f", rpSingkat)}</section>
     </div>`;
 }
 // kiriman dianggap terlambat bila sudah melewati tanggal kirim + estimasi hari (dibulatkan ke atas) + 1 hari toleransi
